@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 248 56" role="img" aria-label="JM Visual">
+  <defs>
+    <linearGradient id="mark" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#F06B4F"/>
+      <stop offset="1" stop-color="#56B6A8"/>
+    </linearGradient>
+  </defs>
+  <path d="M22 8h35c7.2 0 13 5.8 13 13v14c0 7.2-5.8 13-13 13H22C14.8 48 9 42.2 9 35V21C9 13.8 14.8 8 22 8Z" fill="#10212A"/>
+  <path d="M27 17h11v22H27V17Zm18 0h7.7l7.3 10.4L67.3 17H75v22H64.3V30.6l-4.3 6.1h-.3l-4.4-6.1V39H45V17Z" fill="url(#mark)"/>
+  <text x="90" y="37"
+        fill="#E9F1EA"
+        font-family="Bricolage Grotesque, Noto Sans SC, Segoe UI, sans-serif"
+        font-size="25"
+        font-weight="800"
+        letter-spacing="0">VISUAL</text>
+</svg>
