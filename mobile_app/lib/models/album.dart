@@ -5,6 +5,8 @@ class AlbumSummary {
     required this.coverUrl,
     this.author = '',
     this.tags = const [],
+    this.updateDate = '',
+    this.updateWeekday = '',
   });
 
   final String id;
@@ -12,6 +14,8 @@ class AlbumSummary {
   final String coverUrl;
   final String author;
   final List<String> tags;
+  final String updateDate;
+  final String updateWeekday;
 
   factory AlbumSummary.fromJson(Map<String, dynamic> json) {
     return AlbumSummary(
@@ -19,7 +23,10 @@ class AlbumSummary {
       title: json['title']?.toString() ?? '',
       coverUrl: json['coverUrl']?.toString() ?? '',
       author: json['author']?.toString() ?? '',
-      tags: (json['tags'] as List? ?? const []).map((e) => e.toString()).toList(),
+      tags:
+          (json['tags'] as List? ?? const []).map((e) => e.toString()).toList(),
+      updateDate: json['updateDate']?.toString() ?? '',
+      updateWeekday: json['updateWeekday']?.toString() ?? '',
     );
   }
 }
@@ -43,7 +50,8 @@ class AlbumPage {
       pageSize: (json['pageSize'] as num?)?.toInt() ?? 0,
       pageCount: (json['pageCount'] as num?)?.toInt() ?? 1,
       albums: (json['albums'] as List? ?? const [])
-          .map((item) => AlbumSummary.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map((item) =>
+              AlbumSummary.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList(),
     );
   }
@@ -54,17 +62,23 @@ class Episode {
     required this.id,
     required this.index,
     required this.title,
+    this.pubDate = '',
+    this.fileSize = 0,
   });
 
   final String id;
   final int index;
   final String title;
+  final String pubDate;
+  final int fileSize;
 
   factory Episode.fromJson(Map<String, dynamic> json) {
     return Episode(
       id: json['id']?.toString() ?? '',
       index: (json['index'] as num?)?.toInt() ?? 0,
       title: json['title']?.toString() ?? '',
+      pubDate: json['pubDate']?.toString() ?? '',
+      fileSize: (json['fileSize'] as num?)?.toInt() ?? 0,
     );
   }
 }
@@ -86,6 +100,7 @@ class AlbumDetail {
     this.commentCount = '',
     this.pubDate = '',
     this.updateDate = '',
+    this.updateWeekday = '',
   });
 
   final String id;
@@ -103,6 +118,7 @@ class AlbumDetail {
   final String commentCount;
   final String pubDate;
   final String updateDate;
+  final String updateWeekday;
 
   factory AlbumDetail.fromJson(Map<String, dynamic> json) {
     List<String> stringList(String key) {
@@ -114,7 +130,8 @@ class AlbumDetail {
       title: json['title']?.toString() ?? '',
       coverUrl: json['coverUrl']?.toString() ?? '',
       episodes: (json['episodes'] as List? ?? const [])
-          .map((item) => Episode.fromJson(Map<String, dynamic>.from(item as Map)))
+          .map((item) =>
+              Episode.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList(),
       authors: stringList('authors'),
       tags: stringList('tags'),
@@ -127,6 +144,7 @@ class AlbumDetail {
       commentCount: json['commentCount']?.toString() ?? '',
       pubDate: json['pubDate']?.toString() ?? '',
       updateDate: json['updateDate']?.toString() ?? '',
+      updateWeekday: json['updateWeekday']?.toString() ?? '',
     );
   }
 }
