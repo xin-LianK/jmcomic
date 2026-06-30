@@ -6,6 +6,7 @@ import 'screens/catalog_screen.dart';
 import 'screens/downloads_screen.dart';
 import 'screens/library_screen.dart';
 import 'services/jm_api.dart';
+import 'theme/animal_theme.dart';
 import 'widgets/app_logo.dart';
 
 const _appLockEnabledKey = 'jm_visual_app_lock_enabled';
@@ -63,7 +64,7 @@ class _JmVisualAppState extends State<JmVisualApp> {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'JM Visual',
+      title: 'JM 漫画',
       theme: _buildTheme(Brightness.light),
       darkTheme: _buildTheme(Brightness.dark),
       themeMode: _themeMode,
@@ -77,29 +78,40 @@ class _JmVisualAppState extends State<JmVisualApp> {
   ThemeData _buildTheme(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
-      seedColor: dark ? const Color(0xFFF06B4F) : const Color(0xFFFF6B9A),
+      seedColor: dark ? AnimalTheme.tealDark : AnimalTheme.teal,
       brightness: brightness,
-      surface: dark ? const Color(0xFF0B151B) : const Color(0xFFFFFCFD),
+      surface: dark ? AnimalTheme.darkBackground : AnimalTheme.lightBackground,
     ).copyWith(
-      primary: dark ? const Color(0xFFF06B4F) : const Color(0xFFFF5F93),
-      secondary: dark ? const Color(0xFF56B6A8) : const Color(0xFF009EAA),
-      tertiary: dark ? const Color(0xFFF0B44F) : const Color(0xFFF28A3D),
+      primary: dark ? AnimalTheme.tealDark : AnimalTheme.teal,
+      onPrimary: dark ? const Color(0xFF10201D) : Colors.white,
+      secondary: dark ? const Color(0xFFFFD965) : AnimalTheme.mango,
+      onSecondary: const Color(0xFF4C3218),
+      tertiary: dark ? const Color(0xFF9DDC65) : AnimalTheme.leaf,
+      error: dark ? const Color(0xFFFF8B82) : AnimalTheme.coral,
       primaryContainer:
-          dark ? const Color(0xFF5A241E) : const Color(0xFFFFE1EC),
+          dark ? const Color(0xFF173F39) : const Color(0xFFDFF7EE),
+      onPrimaryContainer:
+          dark ? const Color(0xFFB8FFF6) : const Color(0xFF17413B),
       secondaryContainer:
-          dark ? const Color(0xFF123E3B) : const Color(0xFFD7F8F6),
+          dark ? const Color(0xFF4D3B12) : const Color(0xFFFFEBA6),
+      onSecondaryContainer:
+          dark ? const Color(0xFFFFEAA8) : const Color(0xFF5A3A12),
       tertiaryContainer:
-          dark ? const Color(0xFF543813) : const Color(0xFFFFF0B8),
-      surface: dark ? const Color(0xFF0B151B) : const Color(0xFFFFFCFD),
+          dark ? const Color(0xFF2E421E) : const Color(0xFFE5F5C5),
+      onTertiaryContainer:
+          dark ? const Color(0xFFD7F9AA) : const Color(0xFF314616),
+      surface: dark ? AnimalTheme.darkBackground : AnimalTheme.lightBackground,
       surfaceContainerHighest:
-          dark ? const Color(0xFF14242C) : const Color(0xFFF1F5F7),
-      outline: dark ? const Color(0xFF95A69F) : const Color(0xFF6F7C86),
-      outlineVariant: dark ? const Color(0xFF2A3B42) : const Color(0xFFD8E1E7),
+          dark ? AnimalTheme.darkSurfaceSoft : AnimalTheme.lightSurfaceSoft,
+      onSurface: dark ? AnimalTheme.darkInk : AnimalTheme.lightInk,
+      outline: dark ? AnimalTheme.darkMuted : AnimalTheme.lightMuted,
+      outlineVariant:
+          dark ? const Color(0xFF5B4936) : const Color(0xFFD8BF8C),
     );
 
     final baseTextTheme =
         dark ? ThemeData.dark().textTheme : ThemeData.light().textTheme;
-    final textColor = dark ? const Color(0xFFE9F1EA) : const Color(0xFF25313A);
+    final textColor = dark ? AnimalTheme.darkInk : AnimalTheme.lightInk;
     final textTheme = GoogleFonts.notoSansScTextTheme(baseTextTheme)
         .copyWith(
           headlineMedium: GoogleFonts.bricolageGrotesque(
@@ -124,6 +136,16 @@ class _JmVisualAppState extends State<JmVisualApp> {
         )
         .apply(bodyColor: textColor, displayColor: textColor);
 
+    final inputRadius = BorderRadius.circular(AnimalTheme.radiusMd);
+    final buttonShape = WidgetStateProperty.all(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AnimalTheme.radiusPill),
+      ),
+    );
+    final softSurface = dark ? AnimalTheme.darkSurface : AnimalTheme.lightSurface;
+    final softSurfaceAlt =
+        dark ? AnimalTheme.darkSurfaceSoft : AnimalTheme.lightSurfaceSoft;
+
     return ThemeData(
       colorScheme: scheme,
       useMaterial3: true,
@@ -131,56 +153,168 @@ class _JmVisualAppState extends State<JmVisualApp> {
       scaffoldBackgroundColor: scheme.surface,
       textTheme: textTheme,
       visualDensity: VisualDensity.compact,
+      splashFactory: InkSparkle.splashFactory,
       appBarTheme: AppBarTheme(
-        backgroundColor: scheme.surface.withValues(alpha: .94),
+        backgroundColor: scheme.surface.withValues(alpha: .92),
         foregroundColor: scheme.onSurface,
         surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         titleTextStyle: textTheme.titleMedium,
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: dark ? const Color(0xFF0F1E25) : const Color(0xFFFFFFFF),
+        fillColor: softSurface,
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: scheme.outlineVariant)),
+            borderRadius: inputRadius,
+            borderSide: BorderSide(color: scheme.outlineVariant, width: 1.4)),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: scheme.outlineVariant)),
+            borderRadius: inputRadius,
+            borderSide: BorderSide(color: scheme.outlineVariant, width: 1.4)),
+        focusedBorder: OutlineInputBorder(
+            borderRadius: inputRadius,
+            borderSide: BorderSide(color: scheme.primary, width: 1.8)),
+        errorBorder: OutlineInputBorder(
+            borderRadius: inputRadius,
+            borderSide: BorderSide(color: scheme.error, width: 1.4)),
+        focusedErrorBorder: OutlineInputBorder(
+            borderRadius: inputRadius,
+            borderSide: BorderSide(color: scheme.error, width: 1.8)),
         contentPadding:
-            const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         isDense: true,
+        hintStyle: TextStyle(color: scheme.outline),
+        helperStyle: TextStyle(color: scheme.outline),
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStateProperty.all(const Size(44, 42)),
+          padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 11)),
+          shape: buttonShape,
+          textStyle: WidgetStateProperty.all(textTheme.labelLarge),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: ButtonStyle(
+          minimumSize: WidgetStateProperty.all(const Size(44, 42)),
+          padding: WidgetStateProperty.all(
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 11)),
+          shape: buttonShape,
+          side: WidgetStateProperty.resolveWith((states) => BorderSide(
+                color: states.contains(WidgetState.disabled)
+                    ? scheme.outlineVariant.withValues(alpha: .55)
+                    : scheme.outlineVariant,
+                width: 1.4,
+              )),
+          textStyle: WidgetStateProperty.all(textTheme.labelLarge),
+        ),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: ButtonStyle(shape: buttonShape),
       ),
       iconButtonTheme: IconButtonThemeData(
         style: ButtonStyle(
-          shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return scheme.primary;
+            return softSurfaceAlt.withValues(alpha: .72);
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return scheme.onPrimary;
+            return scheme.onSurface;
+          }),
+          shape: WidgetStateProperty.all(RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AnimalTheme.radiusMd))),
         ),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor:
-            dark ? const Color(0xFF162A32) : const Color(0xFFFFF5D8),
-        side: BorderSide(color: scheme.outlineVariant),
+        backgroundColor: softSurfaceAlt,
+        selectedColor: scheme.primaryContainer,
+        disabledColor: softSurfaceAlt.withValues(alpha: .5),
+        side: BorderSide(color: scheme.outlineVariant, width: 1.2),
         labelStyle: TextStyle(color: scheme.onSurface),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        secondaryLabelStyle: TextStyle(color: scheme.onPrimaryContainer),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusPill)),
       ),
       segmentedButtonTheme: SegmentedButtonThemeData(
         style: ButtonStyle(
-          shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+          backgroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return scheme.primary;
+            return softSurface;
+          }),
+          foregroundColor: WidgetStateProperty.resolveWith((states) {
+            if (states.contains(WidgetState.selected)) return scheme.onPrimary;
+            return scheme.onSurface;
+          }),
+          side: WidgetStateProperty.all(
+              BorderSide(color: scheme.outlineVariant, width: 1.3)),
+          shape: WidgetStateProperty.all(RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AnimalTheme.radiusPill))),
         ),
       ),
       navigationBarTheme: NavigationBarThemeData(
         height: 64,
-        backgroundColor:
-            dark ? const Color(0xFF0A1419) : const Color(0xFFFFFFFF),
-        indicatorColor: scheme.primary.withValues(alpha: .18),
+        backgroundColor: softSurface.withValues(alpha: .96),
+        elevation: 0,
+        indicatorColor: scheme.primary.withValues(alpha: dark ? .32 : .18),
+        indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusPill)),
         labelTextStyle: WidgetStateProperty.all(textTheme.labelMedium),
       ),
       navigationRailTheme: NavigationRailThemeData(
-        backgroundColor:
-            dark ? const Color(0xFF081216) : const Color(0xFFFFFFFF),
-        indicatorColor: scheme.primary.withValues(alpha: .18),
+        backgroundColor: softSurface.withValues(alpha: .96),
+        indicatorColor: scheme.primary.withValues(alpha: dark ? .32 : .18),
+        indicatorShape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusPill)),
         labelType: NavigationRailLabelType.none,
+      ),
+      dividerTheme: DividerThemeData(
+        color: scheme.outlineVariant.withValues(alpha: .72),
+        thickness: 1.2,
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? scheme.primary
+                : scheme.outline),
+        trackColor: WidgetStateProperty.resolveWith((states) =>
+            states.contains(WidgetState.selected)
+                ? scheme.primary.withValues(alpha: .28)
+                : scheme.outlineVariant.withValues(alpha: .45)),
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: scheme.primary,
+        linearTrackColor: scheme.outlineVariant.withValues(alpha: .42),
+      ),
+      bottomSheetTheme: BottomSheetThemeData(
+        backgroundColor: softSurface,
+        modalBackgroundColor: softSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: const RoundedRectangleBorder(
+          borderRadius:
+              BorderRadius.vertical(top: Radius.circular(AnimalTheme.radiusXl)),
+        ),
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: dark ? AnimalTheme.darkSurfaceSoft : AnimalTheme.bark,
+        contentTextStyle:
+            textTheme.bodyMedium?.copyWith(color: const Color(0xFFFFF8E8)),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusMd)),
+      ),
+      expansionTileTheme: ExpansionTileThemeData(
+        backgroundColor: Colors.transparent,
+        collapsedBackgroundColor: Colors.transparent,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        childrenPadding: EdgeInsets.zero,
+        iconColor: scheme.primary,
+        collapsedIconColor: scheme.onSurface,
+      ),
+      listTileTheme: ListTileThemeData(
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusMd)),
       ),
     );
   }
@@ -283,36 +417,42 @@ class _UnlockScreenState extends State<_UnlockScreen> {
             constraints: const BoxConstraints(maxWidth: 360),
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Center(child: AppLogo(compact: false)),
-                  const SizedBox(height: 28),
-                  Text('输入开屏密码',
-                      style: theme.textTheme.titleLarge,
-                      textAlign: TextAlign.center),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: _controller,
-                    autofocus: true,
-                    obscureText: true,
-                    keyboardType: TextInputType.visiblePassword,
-                    textInputAction: TextInputAction.done,
-                    onSubmitted: (_) => _submit(),
-                    decoration: InputDecoration(
-                      prefixIcon: const Icon(Icons.lock_outline),
-                      hintText: '密码',
-                      errorText: _error.isEmpty ? null : _error,
-                    ),
+              child: DecoratedBox(
+                decoration: AnimalTheme.cardDecoration(context),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const Center(child: AppLogo(compact: false)),
+                      const SizedBox(height: 28),
+                      Text('输入开屏密码',
+                          style: theme.textTheme.titleLarge,
+                          textAlign: TextAlign.center),
+                      const SizedBox(height: 14),
+                      TextField(
+                        controller: _controller,
+                        autofocus: true,
+                        obscureText: true,
+                        keyboardType: TextInputType.visiblePassword,
+                        textInputAction: TextInputAction.done,
+                        onSubmitted: (_) => _submit(),
+                        decoration: InputDecoration(
+                          prefixIcon: const Icon(Icons.lock_outline),
+                          hintText: '密码',
+                          errorText: _error.isEmpty ? null : _error,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      FilledButton.icon(
+                        onPressed: _submit,
+                        icon: const Icon(Icons.lock_open_outlined),
+                        label: const Text('解锁'),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 14),
-                  FilledButton.icon(
-                    onPressed: _submit,
-                    icon: const Icon(Icons.lock_open_outlined),
-                    label: const Text('解锁'),
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -758,12 +898,7 @@ class _ApiBasePanel extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .46),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -837,12 +972,7 @@ class _AppLockPanel extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .46),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -908,12 +1038,7 @@ class _ThemePanel extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .46),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -980,12 +1105,7 @@ class _BarkPanel extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .46),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1066,12 +1186,7 @@ class _InfoPanel extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

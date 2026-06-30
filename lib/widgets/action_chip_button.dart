@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/animal_theme.dart';
+
 class ActionChipButton extends StatelessWidget {
   const ActionChipButton({
     super.key,
@@ -21,12 +23,16 @@ class ActionChipButton extends StatelessWidget {
         ? FilledButton.styleFrom(
             backgroundColor: scheme.primary,
             foregroundColor: scheme.onPrimary,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AnimalTheme.radiusPill)),
+            elevation: 0,
           )
         : OutlinedButton.styleFrom(
             foregroundColor: scheme.onSurface,
-            side: BorderSide(color: scheme.outlineVariant),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: AnimalTheme.paper(context),
+            side: BorderSide(color: AnimalTheme.border(context), width: 1.4),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AnimalTheme.radiusPill)),
           );
 
     final child = Row(

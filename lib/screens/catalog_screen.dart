@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/album.dart';
 import '../services/jm_api.dart';
 import '../services/library_store.dart';
+import '../theme/animal_theme.dart';
 import 'detail_screen.dart';
 import 'reader_screen.dart';
 
@@ -189,7 +190,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            'JM Library',
+                            '漫画书库',
                             style: theme.textTheme.headlineMedium,
                           ),
                         ),
@@ -422,15 +423,17 @@ class _LibraryShortcuts extends StatelessWidget {
         if (progress != null)
           InkWell(
             onTap: onContinue,
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: .16),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                    color: theme.colorScheme.primary.withValues(alpha: .32)),
+              decoration: AnimalTheme.cardDecoration(
+                context,
+                color: theme.colorScheme.primaryContainer
+                    .withValues(alpha: AnimalTheme.isDark(context) ? .28 : .62),
+                radius: AnimalTheme.radiusLg,
+                elevated: false,
+                borderColor: theme.colorScheme.primary.withValues(alpha: .36),
               ),
               child: Row(
                 children: [
@@ -482,14 +485,13 @@ class _ViewToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(3),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .55),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .6)),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.softPaper(context),
+        radius: AnimalTheme.radiusPill,
+        elevated: false,
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -531,15 +533,16 @@ class _ToggleIcon extends StatelessWidget {
       message: tooltip,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AnimalTheme.radius(AnimalTheme.radiusPill),
         child: Container(
           width: 38,
           height: 34,
-          decoration: BoxDecoration(
+          decoration: AnimalTheme.pillDecoration(
+            context,
+            selected: selected,
             color: selected
                 ? scheme.primary.withValues(alpha: .9)
                 : Colors.transparent,
-            borderRadius: BorderRadius.circular(6),
           ),
           child: Icon(icon,
               size: 18, color: selected ? scheme.onPrimary : scheme.onSurface),
@@ -681,20 +684,16 @@ class _ModePill extends StatelessWidget {
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
         onTap: () => onTap(value),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: AnimalTheme.radius(AnimalTheme.radiusPill),
         child: Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          decoration: BoxDecoration(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: AnimalTheme.pillDecoration(
+            context,
+            selected: selected,
             color: selected
                 ? theme.colorScheme.primary.withValues(alpha: .84)
-                : theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: .42),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-                color: selected
-                    ? Colors.transparent
-                    : theme.colorScheme.outlineVariant.withValues(alpha: .6)),
+                : AnimalTheme.softPaper(context),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -834,21 +833,16 @@ class _CompactAlbumTile extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).width < 560;
     return InkWell(
       onTap: onOpen,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: .42),
-          borderRadius: BorderRadius.circular(8),
-          border:
-              Border.all(color: scheme.outlineVariant.withValues(alpha: .5)),
-        ),
+        decoration: AnimalTheme.cardDecoration(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(8)),
+                    const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -860,7 +854,8 @@ class _CompactAlbumTile extends StatelessWidget {
                       child: DecoratedBox(
                         decoration: BoxDecoration(
                             color: Colors.black.withValues(alpha: .62),
-                            borderRadius: BorderRadius.circular(5)),
+                            borderRadius: BorderRadius.circular(
+                                AnimalTheme.radiusPill)),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 3),
@@ -912,20 +907,17 @@ class _AlbumListRow extends StatelessWidget {
     final compact = MediaQuery.sizeOf(context).width < 560;
     return InkWell(
       onTap: onOpen,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color:
-              theme.colorScheme.surfaceContainerHighest.withValues(alpha: .42),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: .5)),
+        padding: const EdgeInsets.all(9),
+        decoration: AnimalTheme.cardDecoration(
+          context,
+          radius: AnimalTheme.radiusLg,
         ),
         child: Row(
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(6),
+              borderRadius: BorderRadius.circular(AnimalTheme.radiusMd),
               child: Image.network(
                 api.assetUrl(album.coverUrl),
                 width: compact ? 48 : 54,
@@ -1014,12 +1006,7 @@ class _Pager extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .5)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context, elevated: false),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

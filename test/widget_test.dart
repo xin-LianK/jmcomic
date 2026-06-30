@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:jm_visual/main.dart';
 
 void main() {
-  testWidgets('JM Visual app shell renders', (WidgetTester tester) async {
+  testWidgets('JM 漫画 app shell renders', (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({});
     await tester.pumpWidget(const JmVisualApp());
     await tester.pumpAndSettle();

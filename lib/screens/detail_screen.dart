@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../models/album.dart';
 import '../services/jm_api.dart';
 import '../services/library_store.dart';
+import '../theme/animal_theme.dart';
 import '../widgets/action_chip_button.dart';
 import 'catalog_screen.dart';
 import 'reader_screen.dart';
@@ -229,6 +230,9 @@ class _DetailScreenState extends State<DetailScreen> {
             slivers: [
               SliverAppBar.large(
                 pinned: true,
+                backgroundColor:
+                    theme.colorScheme.surface.withValues(alpha: .94),
+                surfaceTintColor: Colors.transparent,
                 title: Text('JM${album.id}'),
                 actions: [
                   IconButton(
@@ -329,14 +333,8 @@ class _DetailScreenState extends State<DetailScreen> {
                     final downloading =
                         _downloadingEpisodeIds.contains(episode.id);
                     return Container(
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: .5),
-                        border: Border.all(
-                            color: theme.colorScheme.outlineVariant
-                                .withValues(alpha: .5)),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
+                      decoration:
+                          AnimalTheme.cardDecoration(context, elevated: false),
                       child: ListTile(
                         onTap: () => _openReader(album, episode),
                         contentPadding: const EdgeInsets.symmetric(
@@ -387,7 +385,7 @@ class _DetailScreenState extends State<DetailScreen> {
 
   String _episodeSubtitle(Episode episode, bool watched) {
     final parts = <String>[
-      'Photo ${episode.id}',
+      '图片 ${episode.id}',
       if (episode.fileSize > 0) _formatBytes(episode.fileSize) else '大小未知',
       if (episode.pubDate.isNotEmpty) episode.pubDate,
       if (watched) '已看过',
@@ -420,15 +418,22 @@ class _Cover extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return AspectRatio(
       aspectRatio: .72,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(8),
-        child: DecoratedBox(
-          decoration: BoxDecoration(color: scheme.surfaceContainerHighest),
-          child: Image.network(
-            api.assetUrl(album.coverUrl),
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) =>
-                Icon(Icons.image_not_supported_outlined, color: scheme.outline),
+      child: DecoratedBox(
+        decoration: AnimalTheme.cardDecoration(context),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusMd),
+            child: DecoratedBox(
+              decoration: BoxDecoration(color: AnimalTheme.softPaper(context)),
+              child: Image.network(
+                api.assetUrl(album.coverUrl),
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Icon(
+                    Icons.image_not_supported_outlined,
+                    color: scheme.outline),
+              ),
+            ),
           ),
         ),
       ),
@@ -550,15 +555,17 @@ class _ContinuePanel extends StatelessWidget {
         : progress.episodeTitle;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Container(
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-        decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: .14),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: .34)),
+        decoration: AnimalTheme.cardDecoration(
+          context,
+          color: theme.colorScheme.primaryContainer
+              .withValues(alpha: AnimalTheme.isDark(context) ? .24 : .58),
+          radius: AnimalTheme.radiusLg,
+          elevated: false,
+          borderColor: theme.colorScheme.primary.withValues(alpha: .34),
         ),
         child: Row(
           children: [
@@ -603,17 +610,11 @@ class _TagPill extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: 180),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: AnimalTheme.radius(AnimalTheme.radiusPill),
         child: Container(
-          height: 26,
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color:
-                theme.colorScheme.surfaceContainerHighest.withValues(alpha: .5),
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(
-                color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
-          ),
+          height: 30,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          decoration: AnimalTheme.pillDecoration(context),
           alignment: Alignment.center,
           child: Text(
             label,
@@ -639,23 +640,18 @@ class _Metric extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            scheme.primaryContainer.withValues(alpha: .82),
-            scheme.secondaryContainer.withValues(alpha: .74),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(8),
+      decoration: AnimalTheme.pillDecoration(
+        context,
+        color: scheme.secondaryContainer.withValues(alpha: .72),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: scheme.onPrimaryContainer),
+          Icon(icon, size: 16, color: scheme.onSecondaryContainer),
           const SizedBox(width: 6),
           Text(label,
               style: TextStyle(
-                  color: scheme.onPrimaryContainer,
+                  color: scheme.onSecondaryContainer,
                   fontWeight: FontWeight.w700)),
         ],
       ),

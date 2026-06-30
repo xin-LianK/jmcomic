@@ -9,7 +9,7 @@ class AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: 'JM Visual',
+      label: 'JM 漫画',
       child: SvgPicture.asset(
         'assets/brand/jm_visual_logo.svg',
         height: compact ? 32 : 42,

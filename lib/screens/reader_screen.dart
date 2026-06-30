@@ -5,6 +5,7 @@ import '../models/album.dart';
 import '../models/photo.dart';
 import '../services/jm_api.dart';
 import '../services/library_store.dart';
+import '../theme/animal_theme.dart';
 
 class ReaderScreen extends StatefulWidget {
   const ReaderScreen({
@@ -158,7 +159,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   String get _displayTitle {
     final episode = _currentEpisode;
-    final title = _title.isEmpty ? 'Photo $_photoId' : _title;
+    final title = _title.isEmpty ? '图片 $_photoId' : _title;
     if (episode == null) return title;
     return '第 ${episode.index} 话-$title';
   }
@@ -306,9 +307,9 @@ class _ReaderTopBar extends StatelessWidget {
     final padding = MediaQuery.paddingOf(context);
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .78),
+        color: AnimalTheme.darkSurface.withValues(alpha: .88),
         border: Border(
-            bottom: BorderSide(color: Colors.white.withValues(alpha: .10))),
+            bottom: BorderSide(color: AnimalTheme.mango.withValues(alpha: .18))),
       ),
       child: Padding(
         padding: EdgeInsets.fromLTRB(8, padding.top + 4, 8, 8),
@@ -317,6 +318,10 @@ class _ReaderTopBar extends StatelessWidget {
             IconButton(
               tooltip: '返回',
               onPressed: onBack,
+              style: IconButton.styleFrom(
+                foregroundColor: AnimalTheme.darkInk,
+                backgroundColor: AnimalTheme.darkSurfaceSoft,
+              ),
               icon: const Icon(Icons.arrow_back),
             ),
             Expanded(
@@ -324,12 +329,19 @@ class _ReaderTopBar extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleSmall,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleSmall
+                    ?.copyWith(color: AnimalTheme.darkInk),
               ),
             ),
             IconButton(
               tooltip: fitWidth ? '原始宽度' : '适应宽度',
               onPressed: onToggleFit,
+              style: IconButton.styleFrom(
+                foregroundColor: AnimalTheme.darkInk,
+                backgroundColor: AnimalTheme.darkSurfaceSoft,
+              ),
               icon: Icon(fitWidth
                   ? Icons.fit_screen_outlined
                   : Icons.open_in_full_outlined),
@@ -337,6 +349,10 @@ class _ReaderTopBar extends StatelessWidget {
             IconButton(
               tooltip: '刷新',
               onPressed: onReload,
+              style: IconButton.styleFrom(
+                foregroundColor: AnimalTheme.darkInk,
+                backgroundColor: AnimalTheme.darkSurfaceSoft,
+              ),
               icon: const Icon(Icons.refresh),
             ),
           ],
@@ -367,9 +383,17 @@ class _ReaderControls extends StatelessWidget {
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .74),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white.withValues(alpha: .12)),
+        color: AnimalTheme.darkSurface.withValues(alpha: .9),
+        borderRadius: BorderRadius.circular(AnimalTheme.radiusLg),
+        border: Border.all(
+            color: AnimalTheme.mango.withValues(alpha: .22), width: 1.3),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .28),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(8),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/album.dart';
 import '../services/jm_api.dart';
+import '../theme/animal_theme.dart';
 
 class AlbumCard extends StatelessWidget {
   const AlbumCard({
@@ -22,19 +23,16 @@ class AlbumCard extends StatelessWidget {
 
     return InkWell(
       onTap: onOpen,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
-        decoration: BoxDecoration(
-          color: scheme.surfaceContainerHighest.withValues(alpha: .62),
-          border: Border.all(color: scheme.outlineVariant.withValues(alpha: .55)),
-          borderRadius: BorderRadius.circular(8),
-        ),
+        decoration: AnimalTheme.cardDecoration(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -44,7 +42,8 @@ class AlbumCard extends StatelessWidget {
                       errorBuilder: (_, __, ___) => Container(
                         color: scheme.surface,
                         alignment: Alignment.center,
-                        child: Icon(Icons.image_not_supported_outlined, color: scheme.outline),
+                        child: Icon(Icons.image_not_supported_outlined,
+                            color: scheme.outline),
                       ),
                     ),
                     DecoratedBox(
@@ -52,7 +51,10 @@ class AlbumCard extends StatelessWidget {
                         gradient: LinearGradient(
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black.withValues(alpha: .42)],
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: .42)
+                          ],
                         ),
                       ),
                     ),
@@ -60,10 +62,12 @@ class AlbumCard extends StatelessWidget {
                       left: 10,
                       bottom: 10,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                        decoration: BoxDecoration(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 5),
+                        decoration: AnimalTheme.pillDecoration(
+                          context,
+                          selected: true,
                           color: scheme.primary.withValues(alpha: .92),
-                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
                           'JM${album.id}',
@@ -87,14 +91,16 @@ class AlbumCard extends StatelessWidget {
                     album.title.isEmpty ? '未命名本子' : album.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+                    style: theme.textTheme.titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w800),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     album.tags.take(3).join(' / '),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelMedium?.copyWith(color: scheme.outline),
+                    style: theme.textTheme.labelMedium
+                        ?.copyWith(color: scheme.outline),
                   ),
                 ],
               ),

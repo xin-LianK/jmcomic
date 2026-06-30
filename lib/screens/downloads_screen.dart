@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 
 import '../models/download_job.dart';
 import '../services/jm_api.dart';
+import '../theme/animal_theme.dart';
+import 'reader_screen.dart';
 
 class DownloadsScreen extends StatefulWidget {
   const DownloadsScreen({super.key, required this.api});
@@ -147,6 +149,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
               itemBuilder: (context, index) {
                 final group = groups[index];
                 return _DownloadGroupCard(
+                  api: widget.api,
                   albumId: group.albumId,
                   title: group.title,
                   jobs: group.jobs,
@@ -191,11 +194,13 @@ class _DownloadGroup {
 
 class _DownloadGroupCard extends StatelessWidget {
   const _DownloadGroupCard({
+    required this.api,
     required this.albumId,
     required this.title,
     required this.jobs,
   });
 
+  final JmApi api;
   final String albumId;
   final String title;
   final List<DownloadJob> jobs;
@@ -206,12 +211,7 @@ class _DownloadGroupCard extends StatelessWidget {
     final active =
         jobs.any((job) => job.status == 'queued' || job.status == 'running');
     return Container(
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .32),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .5)),
-      ),
+      decoration: AnimalTheme.cardDecoration(context),
       child: ExpansionTile(
         initiallyExpanded: active || jobs.length == 1,
         leading: Icon(
@@ -228,7 +228,7 @@ class _DownloadGroupCard extends StatelessWidget {
           for (final job in jobs)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: _DownloadJobCard(job: job),
+              child: _DownloadJobCard(api: api, job: job),
             ),
         ],
       ),
@@ -237,8 +237,9 @@ class _DownloadGroupCard extends StatelessWidget {
 }
 
 class _DownloadJobCard extends StatelessWidget {
-  const _DownloadJobCard({required this.job});
+  const _DownloadJobCard({required this.api, required this.job});
 
+  final JmApi api;
   final DownloadJob job;
 
   Color _statusColor(BuildContext context) {
@@ -294,6 +295,18 @@ class _DownloadJobCard extends StatelessWidget {
     return job.outputPaths.first;
   }
 
+  void _openPreview(BuildContext context, String title) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ReaderScreen.downloadPreview(
+          api: api,
+          jobId: job.id,
+          title: title,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -309,11 +322,11 @@ class _DownloadJobCard extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .44),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .55)),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.softPaper(context),
+        radius: AnimalTheme.radiusMd,
+        elevated: false,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -333,7 +346,7 @@ class _DownloadJobCard extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusPill),
             child: LinearProgressIndicator(
               value: job.status == 'running' ||
                       job.status == 'done' ||
@@ -341,7 +354,8 @@ class _DownloadJobCard extends StatelessWidget {
                   ? progress
                   : null,
               minHeight: 7,
-              backgroundColor: Colors.black.withValues(alpha: .24),
+              backgroundColor:
+                  theme.colorScheme.outlineVariant.withValues(alpha: .35),
               color: color,
             ),
           ),
@@ -370,6 +384,14 @@ class _DownloadJobCard extends StatelessWidget {
           ],
           const SizedBox(height: 10),
           _PathLine(path: _outputPath()),
+          if (job.previewImageCount > 0) ...[
+            const SizedBox(height: 10),
+            FilledButton.tonalIcon(
+              onPressed: () => _openPreview(context, title),
+              icon: const Icon(Icons.visibility_outlined),
+              label: Text('预览 ${job.previewImageCount} 张'),
+            ),
+          ],
           const SizedBox(height: 10),
           Text(
             progress > 0
@@ -394,9 +416,9 @@ class _StatusPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
-      decoration: BoxDecoration(
+      decoration: AnimalTheme.pillDecoration(
+        context,
         color: color.withValues(alpha: .14),
-        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(text,
           style: TextStyle(
@@ -452,12 +474,13 @@ class _ChapterStatusList extends StatelessWidget {
           Container(
             margin: const EdgeInsets.only(bottom: 6),
             padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 8),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surface.withValues(alpha: .48),
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(
-                  color:
-                      theme.colorScheme.outlineVariant.withValues(alpha: .4)),
+            decoration: AnimalTheme.cardDecoration(
+              context,
+              color: AnimalTheme.paper(context).withValues(alpha: .82),
+              radius: AnimalTheme.radiusMd,
+              elevated: false,
+              borderColor:
+                  theme.colorScheme.outlineVariant.withValues(alpha: .64),
             ),
             child: Row(
               children: [
@@ -512,11 +535,9 @@ class _JobMetric extends StatelessWidget {
     final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .16),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .45)),
+      decoration: AnimalTheme.pillDecoration(
+        context,
+        color: AnimalTheme.softPaper(context),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -541,9 +562,11 @@ class _PathLine extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(6),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.paper(context).withValues(alpha: .72),
+        radius: AnimalTheme.radiusMd,
+        elevated: false,
       ),
       child: Row(
         children: [

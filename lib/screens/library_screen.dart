@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/jm_api.dart';
 import '../services/library_store.dart';
+import '../theme/animal_theme.dart';
 import 'detail_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
@@ -413,22 +414,16 @@ class _FavoriteTile extends StatelessWidget {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
-        decoration: BoxDecoration(
-          color:
-              theme.colorScheme.surfaceContainerHighest.withValues(alpha: .44),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: .5)),
-        ),
+        decoration: AnimalTheme.cardDecoration(context),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(8)),
+                    const BorderRadius.vertical(top: Radius.circular(20)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -503,23 +498,18 @@ class _HistoryRow extends StatelessWidget {
         : progress.episodeTitle;
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color:
-              theme.colorScheme.surfaceContainerHighest.withValues(alpha: .34),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: .48)),
-        ),
+        decoration:
+            AnimalTheme.cardDecoration(context, radius: AnimalTheme.radiusLg),
         child: Row(
           children: [
             SizedBox(
               width: 54,
               height: 72,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AnimalTheme.radiusMd),
                 child: _CoverImage(api: api, coverUrl: progress.coverUrl),
               ),
             ),
@@ -572,23 +562,18 @@ class _RecentRow extends StatelessWidget {
     final theme = Theme.of(context);
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
         padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color:
-              theme.colorScheme.surfaceContainerHighest.withValues(alpha: .34),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-              color: theme.colorScheme.outlineVariant.withValues(alpha: .48)),
-        ),
+        decoration:
+            AnimalTheme.cardDecoration(context, radius: AnimalTheme.radiusLg),
         child: Row(
           children: [
             SizedBox(
               width: 54,
               height: 72,
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AnimalTheme.radiusMd),
                 child: _CoverImage(api: api, coverUrl: album.coverUrl),
               ),
             ),
@@ -656,7 +641,7 @@ class _CoverImage extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     if (coverUrl.isEmpty) {
       return ColoredBox(
-        color: scheme.surfaceContainerHighest,
+        color: AnimalTheme.softPaper(context),
         child: Icon(Icons.image_outlined, color: scheme.outline),
       );
     }
@@ -664,7 +649,7 @@ class _CoverImage extends StatelessWidget {
       api.assetUrl(coverUrl),
       fit: BoxFit.cover,
       errorBuilder: (_, __, ___) => ColoredBox(
-        color: scheme.surfaceContainerHighest,
+        color: AnimalTheme.softPaper(context),
         child: Icon(Icons.image_not_supported_outlined, color: scheme.outline),
       ),
     );
@@ -704,9 +689,10 @@ class _TinyPill extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-      decoration: BoxDecoration(
+      decoration: AnimalTheme.pillDecoration(
+        context,
+        selected: true,
         color: scheme.primary.withValues(alpha: .9),
-        borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
         text,
@@ -730,11 +716,10 @@ class _SectionEmpty extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: .26),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-            color: theme.colorScheme.outlineVariant.withValues(alpha: .42)),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.softPaper(context),
+        elevated: false,
       ),
       child: Text(text,
           style: theme.textTheme.bodyMedium
