@@ -143,8 +143,23 @@ class _DetailScreenState extends State<DetailScreen> {
       );
       if (!mounted) return;
       setState(() => _favorite = saved);
+      var message = saved ? '已收藏本子' : '已取消收藏';
+      if (!saved) {
+        try {
+          await widget.api.setWatchedAlbum(
+            id: album.id,
+            title: album.title,
+            coverUrl: album.coverUrl,
+            enabled: false,
+          );
+          message = '已取消收藏，并关闭定时下载';
+        } catch (_) {
+          message = '已取消收藏；定时下载关闭失败，请在书架确认';
+        }
+      }
+      if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(saved ? '已收藏本子' : '已取消收藏')));
+          .showSnackBar(SnackBar(content: Text(message)));
     } catch (error) {
       if (!mounted) return;
       setState(() => _favorite = previous);
