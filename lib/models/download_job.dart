@@ -59,6 +59,7 @@ class DownloadJob {
     required this.episodeIndex,
     required this.status,
     required this.message,
+    required this.cancelRequested,
     required this.progress,
     required this.totalImages,
     required this.completedImages,
@@ -68,6 +69,7 @@ class DownloadJob {
     required this.previewImageCount,
     required this.previewUrl,
     required this.chapters,
+    required this.pdfMerge,
   });
 
   final String id;
@@ -79,6 +81,7 @@ class DownloadJob {
   final int episodeIndex;
   final String status;
   final String message;
+  final bool cancelRequested;
   final double progress;
   final int totalImages;
   final int completedImages;
@@ -88,6 +91,7 @@ class DownloadJob {
   final int previewImageCount;
   final String previewUrl;
   final List<DownloadChapter> chapters;
+  final PdfMergeState pdfMerge;
 
   double get normalizedProgress => totalImages == 0
       ? progress
@@ -104,6 +108,7 @@ class DownloadJob {
       episodeIndex: (json['episodeIndex'] as num?)?.toInt() ?? 0,
       status: json['status']?.toString() ?? '',
       message: json['message']?.toString() ?? '',
+      cancelRequested: json['cancelRequested'] == true,
       progress: (json['progress'] as num?)?.toDouble() ?? 0,
       totalImages: (json['totalImages'] as num?)?.toInt() ?? 0,
       completedImages: (json['completedImages'] as num?)?.toInt() ?? 0,
@@ -118,6 +123,10 @@ class DownloadJob {
           .map((item) =>
               DownloadChapter.fromJson(Map<String, dynamic>.from(item as Map)))
           .toList(),
+      pdfMerge: json['pdfMerge'] is Map
+          ? PdfMergeState.fromJson(
+              Map<String, dynamic>.from(json['pdfMerge'] as Map))
+          : PdfMergeState.idle,
     );
   }
 
@@ -131,6 +140,7 @@ class DownloadJob {
         'episodeIndex': episodeIndex,
         'status': status,
         'message': message,
+        'cancelRequested': cancelRequested,
         'progress': progress,
         'totalImages': totalImages,
         'completedImages': completedImages,
@@ -140,6 +150,7 @@ class DownloadJob {
         'previewImageCount': previewImageCount,
         'previewUrl': previewUrl,
         'chapters': chapters.map((item) => item.toJson()).toList(),
+        'pdfMerge': pdfMerge.toJson(),
       };
 
   DownloadJob copyWith({
@@ -152,6 +163,7 @@ class DownloadJob {
     int? episodeIndex,
     String? status,
     String? message,
+    bool? cancelRequested,
     double? progress,
     int? totalImages,
     int? completedImages,
@@ -161,6 +173,7 @@ class DownloadJob {
     int? previewImageCount,
     String? previewUrl,
     List<DownloadChapter>? chapters,
+    PdfMergeState? pdfMerge,
   }) {
     return DownloadJob(
       id: id ?? this.id,
@@ -172,6 +185,7 @@ class DownloadJob {
       episodeIndex: episodeIndex ?? this.episodeIndex,
       status: status ?? this.status,
       message: message ?? this.message,
+      cancelRequested: cancelRequested ?? this.cancelRequested,
       progress: progress ?? this.progress,
       totalImages: totalImages ?? this.totalImages,
       completedImages: completedImages ?? this.completedImages,
@@ -181,6 +195,78 @@ class DownloadJob {
       previewImageCount: previewImageCount ?? this.previewImageCount,
       previewUrl: previewUrl ?? this.previewUrl,
       chapters: chapters ?? this.chapters,
+      pdfMerge: pdfMerge ?? this.pdfMerge,
     );
   }
+}
+
+class PdfMergeState {
+  static const idle = PdfMergeState(
+    status: 'idle',
+    message: '',
+    progress: 0,
+    totalChapters: 0,
+    completedChapters: 0,
+    failedChapters: 0,
+    outputPaths: [],
+    startedAt: null,
+    finishedAt: null,
+    workers: 3,
+  );
+
+  const PdfMergeState({
+    required this.status,
+    required this.message,
+    required this.progress,
+    required this.totalChapters,
+    required this.completedChapters,
+    required this.failedChapters,
+    required this.outputPaths,
+    required this.startedAt,
+    required this.finishedAt,
+    required this.workers,
+  });
+
+  final String status;
+  final String message;
+  final double progress;
+  final int totalChapters;
+  final int completedChapters;
+  final int failedChapters;
+  final List<String> outputPaths;
+  final double? startedAt;
+  final double? finishedAt;
+  final int workers;
+
+  bool get active => status == 'queued' || status == 'running';
+
+  factory PdfMergeState.fromJson(Map<String, dynamic> json) {
+    return PdfMergeState(
+      status: json['status']?.toString() ?? 'idle',
+      message: json['message']?.toString() ?? '',
+      progress: (json['progress'] as num?)?.toDouble() ?? 0,
+      totalChapters: (json['totalChapters'] as num?)?.toInt() ?? 0,
+      completedChapters: (json['completedChapters'] as num?)?.toInt() ?? 0,
+      failedChapters: (json['failedChapters'] as num?)?.toInt() ?? 0,
+      outputPaths: (json['outputPaths'] as List? ?? const [])
+          .map((item) => item.toString())
+          .toList(),
+      startedAt: (json['startedAt'] as num?)?.toDouble(),
+      finishedAt: (json['finishedAt'] as num?)?.toDouble(),
+      workers: (json['workers'] as num?)?.toInt() ?? 3,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'status': status,
+        'message': message,
+        'progress': progress,
+        'totalChapters': totalChapters,
+        'completedChapters': completedChapters,
+        'failedChapters': failedChapters,
+        'outputPaths': outputPaths,
+        'startedAt': startedAt,
+        'finishedAt': finishedAt,
+        'workers': workers,
+      };
 }

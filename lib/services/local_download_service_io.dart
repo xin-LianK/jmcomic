@@ -182,6 +182,7 @@ class LocalDownloadService {
       episodeIndex: 0,
       status: 'running',
       message: '准备下载到本机',
+      cancelRequested: false,
       progress: 0,
       totalImages: 0,
       completedImages: 0,
@@ -191,6 +192,7 @@ class LocalDownloadService {
       previewImageCount: 0,
       previewUrl: '',
       chapters: const [],
+      pdfMerge: PdfMergeState.idle,
     );
   }
 

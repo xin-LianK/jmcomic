@@ -29,8 +29,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     super.initState();
     _loadDownloads(showLoading: true);
     _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (_jobs
-          .any((job) => job.status == 'queued' || job.status == 'running')) {
+      if (_jobs.any(_isActiveJob)) {
         _loadDownloads();
       }
     });
@@ -153,6 +152,7 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
                   albumId: group.albumId,
                   title: group.title,
                   jobs: group.jobs,
+                  onChanged: _refresh,
                 );
               },
             ),
@@ -180,6 +180,13 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
   }
 }
 
+bool _isActiveJob(DownloadJob job) {
+  return job.status == 'queued' ||
+      job.status == 'running' ||
+      job.status == 'cancelling' ||
+      job.pdfMerge.active;
+}
+
 class _DownloadGroup {
   const _DownloadGroup({
     required this.albumId,
@@ -198,18 +205,19 @@ class _DownloadGroupCard extends StatelessWidget {
     required this.albumId,
     required this.title,
     required this.jobs,
+    required this.onChanged,
   });
 
   final JmApi api;
   final String albumId;
   final String title;
   final List<DownloadJob> jobs;
+  final VoidCallback onChanged;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final active =
-        jobs.any((job) => job.status == 'queued' || job.status == 'running');
+    final active = jobs.any(_isActiveJob);
     return Container(
       decoration: AnimalTheme.cardDecoration(context),
       child: ExpansionTile(
@@ -228,7 +236,7 @@ class _DownloadGroupCard extends StatelessWidget {
           for (final job in jobs)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: _DownloadJobCard(api: api, job: job),
+              child: _DownloadJobCard(api: api, job: job, onChanged: onChanged),
             ),
         ],
       ),
@@ -236,17 +244,33 @@ class _DownloadGroupCard extends StatelessWidget {
   }
 }
 
-class _DownloadJobCard extends StatelessWidget {
-  const _DownloadJobCard({required this.api, required this.job});
+class _DownloadJobCard extends StatefulWidget {
+  const _DownloadJobCard({
+    required this.api,
+    required this.job,
+    required this.onChanged,
+  });
 
   final JmApi api;
   final DownloadJob job;
+  final VoidCallback onChanged;
+
+  @override
+  State<_DownloadJobCard> createState() => _DownloadJobCardState();
+}
+
+class _DownloadJobCardState extends State<_DownloadJobCard> {
+  bool _busy = false;
+
+  DownloadJob get job => widget.job;
 
   Color _statusColor(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
     return switch (job.status) {
       'done' => scheme.secondary,
       'failed' => scheme.error,
+      'cancelled' => scheme.outline,
+      'cancelling' => scheme.outline,
       'running' => scheme.tertiary,
       _ => scheme.outline,
     };
@@ -256,6 +280,8 @@ class _DownloadJobCard extends StatelessWidget {
     return switch (job.status) {
       'done' => Icons.check_circle_outline,
       'failed' => Icons.error_outline,
+      'cancelled' => Icons.cancel_outlined,
+      'cancelling' => Icons.cancel_schedule_send_outlined,
       'running' => Icons.downloading_outlined,
       _ => Icons.hourglass_empty_outlined,
     };
@@ -265,6 +291,8 @@ class _DownloadJobCard extends StatelessWidget {
     return switch (job.status) {
       'done' => '完成',
       'failed' => '失败',
+      'cancelled' => '已取消',
+      'cancelling' => '取消中',
       'running' => '下载中',
       'queued' => '排队中',
       _ => job.status,
@@ -295,11 +323,69 @@ class _DownloadJobCard extends StatelessWidget {
     return job.outputPaths.first;
   }
 
+  Color _pdfStatusColor(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return switch (job.pdfMerge.status) {
+      'done' => scheme.secondary,
+      'failed' => scheme.error,
+      'running' => scheme.tertiary,
+      'queued' => scheme.outline,
+      _ => scheme.outline,
+    };
+  }
+
+  String _pdfStatusText() {
+    return switch (job.pdfMerge.status) {
+      'done' => 'PDF 已完成',
+      'failed' => 'PDF 失败',
+      'running' => 'PDF 合并中',
+      'queued' => 'PDF 排队中',
+      _ => '未合并 PDF',
+    };
+  }
+
+  bool get _canCancel =>
+      job.status == 'queued' ||
+      job.status == 'running' ||
+      job.status == 'cancelling';
+
+  bool get _canMergePdf => job.status == 'done' && !job.pdfMerge.active;
+
+  Future<void> _cancelDownload() async {
+    if (_busy || !_canCancel) return;
+    setState(() => _busy = true);
+    try {
+      await widget.api.cancelDownload(job.id);
+      widget.onChanged();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('取消失败：$error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _mergePdf() async {
+    if (_busy || !_canMergePdf) return;
+    setState(() => _busy = true);
+    try {
+      await widget.api.mergeDownloadPdf(job.id);
+      widget.onChanged();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('启动 PDF 合并失败：$error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   void _openPreview(BuildContext context, String title) {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReaderScreen.downloadPreview(
-          api: api,
+          api: widget.api,
           jobId: job.id,
           title: title,
         ),
@@ -384,12 +470,53 @@ class _DownloadJobCard extends StatelessWidget {
           ],
           const SizedBox(height: 10),
           _PathLine(path: _outputPath()),
-          if (job.previewImageCount > 0) ...[
+          if (job.pdfMerge.status != 'idle') ...[
             const SizedBox(height: 10),
-            FilledButton.tonalIcon(
-              onPressed: () => _openPreview(context, title),
-              icon: const Icon(Icons.visibility_outlined),
-              label: Text('预览 ${job.previewImageCount} 张'),
+            _PdfMergeProgress(
+              state: job.pdfMerge,
+              color: _pdfStatusColor(context),
+              label: _pdfStatusText(),
+            ),
+          ],
+          if (job.previewImageCount > 0 || _canCancel || job.status == 'done') ...[
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (job.previewImageCount > 0)
+                  FilledButton.tonalIcon(
+                    onPressed: () => _openPreview(context, title),
+                    icon: const Icon(Icons.visibility_outlined),
+                    label: Text('预览 ${job.previewImageCount} 张'),
+                  ),
+                if (job.status == 'done')
+                  OutlinedButton.icon(
+                    onPressed: _busy || !_canMergePdf ? null : _mergePdf,
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.picture_as_pdf_outlined),
+                    label: Text(job.pdfMerge.status == 'done'
+                        ? '重新合并 PDF'
+                        : '合并 PDF'),
+                  ),
+                if (_canCancel)
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : _cancelDownload,
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.cancel_outlined),
+                    label: const Text('取消'),
+                  ),
+              ],
             ),
           ],
           const SizedBox(height: 10),
@@ -423,6 +550,79 @@ class _StatusPill extends StatelessWidget {
       child: Text(text,
           style: TextStyle(
               color: color, fontWeight: FontWeight.w800, fontSize: 12)),
+    );
+  }
+}
+
+class _PdfMergeProgress extends StatelessWidget {
+  const _PdfMergeProgress({
+    required this.state,
+    required this.color,
+    required this.label,
+  });
+
+  final PdfMergeState state;
+  final Color color;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final done = state.completedChapters + state.failedChapters;
+    final total = state.totalChapters;
+    final progress = total == 0 ? state.progress : (done / total);
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.paper(context).withValues(alpha: .72),
+        radius: AnimalTheme.radiusMd,
+        elevated: false,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.picture_as_pdf_outlined, size: 16, color: color),
+              const SizedBox(width: 7),
+              Expanded(
+                child: Text(
+                  '$label · $done/$total 章',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelMedium,
+                ),
+              ),
+              if (state.failedChapters > 0)
+                _StatusPill(text: '失败 ${state.failedChapters}', color: color),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AnimalTheme.radiusPill),
+            child: LinearProgressIndicator(
+              value: state.active || progress > 0
+                  ? progress.clamp(0, 1).toDouble()
+                  : null,
+              minHeight: 6,
+              backgroundColor:
+                  theme.colorScheme.outlineVariant.withValues(alpha: .35),
+              color: color,
+            ),
+          ),
+          if (state.message.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              state.message,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -25,7 +25,7 @@ class JmVisualApp extends StatefulWidget {
 }
 
 class _JmVisualAppState extends State<JmVisualApp> {
-  ThemeMode _themeMode = ThemeMode.dark;
+  ThemeMode _themeMode = ThemeMode.light;
 
   @override
   void initState() {
@@ -41,7 +41,8 @@ class _JmVisualAppState extends State<JmVisualApp> {
       _themeMode = switch (saved) {
         'light' => ThemeMode.light,
         'system' => ThemeMode.system,
-        _ => ThemeMode.dark,
+        'dark' => ThemeMode.dark,
+        _ => ThemeMode.light,
       };
     });
   }
@@ -83,21 +84,21 @@ class _JmVisualAppState extends State<JmVisualApp> {
       surface: dark ? AnimalTheme.darkBackground : AnimalTheme.lightBackground,
     ).copyWith(
       primary: dark ? AnimalTheme.tealDark : AnimalTheme.teal,
-      onPrimary: dark ? const Color(0xFF10201D) : Colors.white,
+      onPrimary: dark ? const Color(0xFF10201D) : const Color(0xFFFFFFFF),
       secondary: dark ? const Color(0xFFFFD965) : AnimalTheme.mango,
       onSecondary: const Color(0xFF4C3218),
       tertiary: dark ? const Color(0xFF9DDC65) : AnimalTheme.leaf,
       error: dark ? const Color(0xFFFF8B82) : AnimalTheme.coral,
       primaryContainer:
-          dark ? const Color(0xFF173F39) : const Color(0xFFDFF7EE),
+          dark ? const Color(0xFF173F39) : const Color(0xFFDDF8F1),
       onPrimaryContainer:
-          dark ? const Color(0xFFB8FFF6) : const Color(0xFF17413B),
+          dark ? const Color(0xFFB8FFF6) : const Color(0xFF073D36),
       secondaryContainer:
-          dark ? const Color(0xFF4D3B12) : const Color(0xFFFFEBA6),
+          dark ? const Color(0xFF4D3B12) : const Color(0xFFFFE7A3),
       onSecondaryContainer:
           dark ? const Color(0xFFFFEAA8) : const Color(0xFF5A3A12),
       tertiaryContainer:
-          dark ? const Color(0xFF2E421E) : const Color(0xFFE5F5C5),
+          dark ? const Color(0xFF2E421E) : const Color(0xFFE6F5C8),
       onTertiaryContainer:
           dark ? const Color(0xFFD7F9AA) : const Color(0xFF314616),
       surface: dark ? AnimalTheme.darkBackground : AnimalTheme.lightBackground,
@@ -106,7 +107,7 @@ class _JmVisualAppState extends State<JmVisualApp> {
       onSurface: dark ? AnimalTheme.darkInk : AnimalTheme.lightInk,
       outline: dark ? AnimalTheme.darkMuted : AnimalTheme.lightMuted,
       outlineVariant:
-          dark ? const Color(0xFF5B4936) : const Color(0xFFD8BF8C),
+          dark ? const Color(0xFF5B4936) : const Color(0xFFE4C88F),
     );
 
     final baseTextTheme =
@@ -154,6 +155,22 @@ class _JmVisualAppState extends State<JmVisualApp> {
       textTheme: textTheme,
       visualDensity: VisualDensity.compact,
       splashFactory: InkSparkle.splashFactory,
+      cardTheme: CardThemeData(
+        color: softSurface,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AnimalTheme.radiusLg),
+          side: BorderSide(color: scheme.outlineVariant, width: 1.2),
+        ),
+      ),
+      dialogTheme: DialogThemeData(
+        backgroundColor: softSurface,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AnimalTheme.radiusXl),
+        ),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: scheme.surface.withValues(alpha: .92),
         foregroundColor: scheme.onSurface,
@@ -646,6 +663,11 @@ class _SettingsScreenState extends State<_SettingsScreen> {
   bool _lockSaving = false;
   bool _settingsSaving = false;
   int _watchIntervalMinutes = 60;
+  int _downloadWorkers = 1;
+  int _photoWorkers = 20;
+  int _imageWorkers = 30;
+  bool _createPdf = false;
+  int _pdfMergeWorkers = 3;
 
   @override
   void initState() {
@@ -680,6 +702,11 @@ class _SettingsScreenState extends State<_SettingsScreen> {
     final settings = await widget.api.settings();
     _barkController.text = settings.barkUrls.join('\n');
     _watchIntervalMinutes = settings.watchIntervalMinutes;
+    _downloadWorkers = settings.downloadWorkers;
+    _photoWorkers = settings.photoWorkers;
+    _imageWorkers = settings.imageWorkers;
+    _createPdf = settings.createPdf;
+    _pdfMergeWorkers = settings.pdfMergeWorkers;
     return settings;
   }
 
@@ -694,19 +721,30 @@ class _SettingsScreenState extends State<_SettingsScreen> {
       final settings = await widget.api.saveSettings(VisualSettings(
         barkUrls: urls,
         watchIntervalMinutes: _watchIntervalMinutes,
+        downloadWorkers: _downloadWorkers,
+        photoWorkers: _photoWorkers,
+        imageWorkers: _imageWorkers,
+        createPdf: _createPdf,
+        pdfMergeWorkers: _pdfMergeWorkers,
       ));
       if (!mounted) return;
       setState(() {
         _barkController.text = settings.barkUrls.join('\n');
         _watchIntervalMinutes = settings.watchIntervalMinutes;
+        _downloadWorkers = settings.downloadWorkers;
+        _photoWorkers = settings.photoWorkers;
+        _imageWorkers = settings.imageWorkers;
+        _createPdf = settings.createPdf;
+        _pdfMergeWorkers = settings.pdfMergeWorkers;
         _settingsFuture = Future.value(settings);
+        _future = widget.api.health();
       });
       ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('通知设置已保存')));
+          .showSnackBar(const SnackBar(content: Text('JM 设置已保存')));
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('通知设置保存失败：$error')));
+          .showSnackBar(SnackBar(content: Text('JM 设置保存失败：$error')));
     } finally {
       if (mounted) setState(() => _settingsSaving = false);
     }
@@ -822,6 +860,21 @@ class _SettingsScreenState extends State<_SettingsScreen> {
                       intervalMinutes: _watchIntervalMinutes,
                       onIntervalChanged: (value) =>
                           setState(() => _watchIntervalMinutes = value),
+                      downloadWorkers: _downloadWorkers,
+                      onDownloadWorkersChanged: (value) =>
+                          setState(() => _downloadWorkers = value),
+                      photoWorkers: _photoWorkers,
+                      onPhotoWorkersChanged: (value) =>
+                          setState(() => _photoWorkers = value),
+                      imageWorkers: _imageWorkers,
+                      onImageWorkersChanged: (value) =>
+                          setState(() => _imageWorkers = value),
+                      createPdf: _createPdf,
+                      onCreatePdfChanged: (value) =>
+                          setState(() => _createPdf = value),
+                      pdfMergeWorkers: _pdfMergeWorkers,
+                      onPdfMergeWorkersChanged: (value) =>
+                          setState(() => _pdfMergeWorkers = value),
                       onSave: _saveVisualSettings,
                     );
                   },
@@ -858,6 +911,11 @@ class _SettingsScreenState extends State<_SettingsScreen> {
                         'jmcomic：${info['jmcomicVersion']}',
                         '下载目录：${info['downloadDir']}',
                         '缓存目录：${info['cacheDir']}',
+                        '下载任务并发：${info['downloadWorkers'] ?? '-'}',
+                        '章节并发：${info['photoWorkers'] ?? '-'}',
+                        '图片并发：${info['imageWorkers'] ?? '-'}',
+                        '自动 PDF：${info['createPdf'] == true ? '开启' : '关闭'}',
+                        'PDF 合并并发：${info['pdfMergeWorkers'] ?? '-'}',
                       ],
                       action: FilledButton.icon(
                         onPressed: () =>
@@ -1085,6 +1143,16 @@ class _BarkPanel extends StatelessWidget {
     required this.loading,
     required this.intervalMinutes,
     required this.onIntervalChanged,
+    required this.downloadWorkers,
+    required this.onDownloadWorkersChanged,
+    required this.photoWorkers,
+    required this.onPhotoWorkersChanged,
+    required this.imageWorkers,
+    required this.onImageWorkersChanged,
+    required this.createPdf,
+    required this.onCreatePdfChanged,
+    required this.pdfMergeWorkers,
+    required this.onPdfMergeWorkersChanged,
     required this.onSave,
   });
 
@@ -1093,9 +1161,48 @@ class _BarkPanel extends StatelessWidget {
   final bool loading;
   final int intervalMinutes;
   final ValueChanged<int> onIntervalChanged;
+  final int downloadWorkers;
+  final ValueChanged<int> onDownloadWorkersChanged;
+  final int photoWorkers;
+  final ValueChanged<int> onPhotoWorkersChanged;
+  final int imageWorkers;
+  final ValueChanged<int> onImageWorkersChanged;
+  final bool createPdf;
+  final ValueChanged<bool> onCreatePdfChanged;
+  final int pdfMergeWorkers;
+  final ValueChanged<int> onPdfMergeWorkersChanged;
   final VoidCallback onSave;
 
   static const _intervals = [15, 30, 60, 180, 360, 720, 1440];
+
+  Widget _numberField({
+    required String label,
+    required String helper,
+    required int value,
+    required int min,
+    required int max,
+    required ValueChanged<int> onChanged,
+    required bool disabled,
+  }) {
+    return SizedBox(
+      width: 210,
+      child: TextFormField(
+        key: ValueKey('$label-$value'),
+        initialValue: value.toString(),
+        enabled: !disabled,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: label,
+          helperText: helper,
+        ),
+        onChanged: (raw) {
+          final parsed = int.tryParse(raw);
+          if (parsed == null) return;
+          onChanged(parsed.clamp(min, max).toInt());
+        },
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1151,6 +1258,57 @@ class _BarkPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 10),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              _numberField(
+                label: '下载任务并发',
+                helper: 'NAS 建议 1',
+                value: downloadWorkers,
+                min: 1,
+                max: 8,
+                onChanged: onDownloadWorkersChanged,
+                disabled: saving || loading,
+              ),
+              _numberField(
+                label: '章节下载并发',
+                helper: '单个任务内章节数',
+                value: photoWorkers,
+                min: 1,
+                max: 20,
+                onChanged: onPhotoWorkersChanged,
+                disabled: saving || loading,
+              ),
+              _numberField(
+                label: '图片下载并发',
+                helper: '每章图片数',
+                value: imageWorkers,
+                min: 1,
+                max: 30,
+                onChanged: onImageWorkersChanged,
+                disabled: saving || loading,
+              ),
+              _numberField(
+                label: 'PDF 合并并发',
+                helper: '默认 3 章节',
+                value: pdfMergeWorkers,
+                min: 1,
+                max: 8,
+                onChanged: onPdfMergeWorkersChanged,
+                disabled: saving || loading,
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: createPdf,
+            onChanged: saving || loading ? null : onCreatePdfChanged,
+            title: const Text('下载后自动生成 PDF'),
+            subtitle: const Text('NAS 不稳时建议关闭，下载后在队列里手动合并。'),
+          ),
+          const SizedBox(height: 10),
           FilledButton.icon(
             onPressed: saving || loading ? null : onSave,
             icon: saving || loading
@@ -1159,7 +1317,7 @@ class _BarkPanel extends StatelessWidget {
                     height: 16,
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.save_outlined),
-            label: Text(saving ? '保存中' : '保存通知设置'),
+            label: Text(saving ? '保存中' : '保存 JM 设置'),
           ),
         ],
       ),

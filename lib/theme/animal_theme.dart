@@ -3,11 +3,11 @@ import 'package:flutter/material.dart';
 class AnimalTheme {
   const AnimalTheme._();
 
-  static const lightBackground = Color(0xFFF8F6E8);
-  static const lightSurface = Color(0xFFFFFBEC);
-  static const lightSurfaceSoft = Color(0xFFF2E8D4);
-  static const lightInk = Color(0xFF5F3B1F);
-  static const lightMuted = Color(0xFF8A7152);
+  static const lightBackground = Color(0xFFFFF8E8);
+  static const lightSurface = Color(0xFFFFFDF4);
+  static const lightSurfaceSoft = Color(0xFFFFEAC0);
+  static const lightInk = Color(0xFF3F3327);
+  static const lightMuted = Color(0xFF826B52);
 
   static const darkBackground = Color(0xFF17140F);
   static const darkSurface = Color(0xFF221C16);
@@ -15,12 +15,12 @@ class AnimalTheme {
   static const darkInk = Color(0xFFF8EFD2);
   static const darkMuted = Color(0xFFCBBE9E);
 
-  static const teal = Color(0xFF18BFAF);
+  static const teal = Color(0xFF15B8A6);
   static const tealDark = Color(0xFF4DD8CB);
-  static const mango = Color(0xFFF5C431);
-  static const leaf = Color(0xFF74B843);
-  static const coral = Color(0xFFE6635A);
-  static const bark = Color(0xFF7B4B25);
+  static const mango = Color(0xFFFFC84D);
+  static const leaf = Color(0xFF68B756);
+  static const coral = Color(0xFFE96759);
+  static const bark = Color(0xFF7A5230);
 
   static const radiusSm = 12.0;
   static const radiusMd = 16.0;
@@ -43,11 +43,11 @@ class AnimalTheme {
       isDark(context) ? darkMuted : lightMuted;
 
   static Color border(BuildContext context) =>
-      isDark(context) ? const Color(0xFF5B4936) : const Color(0xFFD8BF8C);
+      isDark(context) ? const Color(0xFF5B4936) : const Color(0xFFE4C88F);
 
   static Color warmShadow(BuildContext context) => isDark(context)
       ? Colors.black.withValues(alpha: .28)
-      : bark.withValues(alpha: .14);
+      : bark.withValues(alpha: .12);
 
   static BorderRadius radius(double value) => BorderRadius.circular(value);
 
@@ -63,13 +63,26 @@ class AnimalTheme {
       borderRadius: BorderRadius.circular(radius),
       border: Border.all(color: borderColor ?? border(context), width: 1.5),
       boxShadow: elevated
-          ? [
-              BoxShadow(
-                color: warmShadow(context),
-                blurRadius: isDark(context) ? 18 : 16,
-                offset: const Offset(0, 8),
-              ),
-            ]
+          ? isDark(context)
+              ? [
+                  BoxShadow(
+                    color: warmShadow(context),
+                    blurRadius: 18,
+                    offset: const Offset(0, 8),
+                  ),
+                ]
+              : [
+                  BoxShadow(
+                    color: bark.withValues(alpha: .10),
+                    blurRadius: 22,
+                    offset: const Offset(0, 10),
+                  ),
+                  BoxShadow(
+                    color: Colors.white.withValues(alpha: .85),
+                    blurRadius: 10,
+                    offset: const Offset(-3, -3),
+                  ),
+                ]
           : null,
     );
   }
