@@ -123,7 +123,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         Text('书架', style: theme.textTheme.headlineMedium),
                         const SizedBox(height: 8),
                         Text(
-                          '收藏的本子优先展示，看过的本子会保留最近阅读位置。',
+                          '收藏和最近记录会同步显示，阅读进度会自动保留。',
                           style: theme.textTheme.bodyMedium
                               ?.copyWith(color: theme.colorScheme.outline),
                         ),
@@ -159,9 +159,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
               }
 
               final data = snapshot.data!;
-              if (data.favorites.isEmpty &&
-                  data.recent.isEmpty &&
-                  data.history.isEmpty) {
+              final recentItems = data.recentItems;
+              if (data.favorites.isEmpty && recentItems.isEmpty) {
                 return const SliverFillRemaining(
                   hasScrollBody: false,
                   child: _LibraryEmpty(
@@ -175,70 +174,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
               return SliverPadding(
                 padding: EdgeInsets.fromLTRB(gutter, 8, gutter, 24),
                 sliver: SliverToBoxAdapter(
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 760;
-                      if (wide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              flex: 3,
-                              child: _FavoritesSection(
-                                favorites: data.favorites,
-                                api: widget.api,
-                                autoDownloadIds: data.autoDownloadIds,
-                                onOpen: _openAlbum,
-                                onAutoDownloadChanged: _setAutoDownload,
-                              ),
-                            ),
-                            const SizedBox(width: 18),
-                            Expanded(
-                              flex: 2,
-                              child: _RecentSection(
-                                recent: data.recent,
-                                api: widget.api,
-                                onOpen: _openAlbum,
-                              ),
-                            ),
-                            const SizedBox(width: 18),
-                            Expanded(
-                              flex: 2,
-                              child: _HistorySection(
-                                history: data.history,
-                                api: widget.api,
-                                onOpen: _openAlbum,
-                              ),
-                            ),
-                          ],
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _FavoritesSection(
-                            favorites: data.favorites,
-                            api: widget.api,
-                            autoDownloadIds: data.autoDownloadIds,
-                            onOpen: _openAlbum,
-                            onAutoDownloadChanged: _setAutoDownload,
-                          ),
-                          const SizedBox(height: 22),
-                          _RecentSection(
-                            recent: data.recent,
-                            api: widget.api,
-                            onOpen: _openAlbum,
-                          ),
-                          const SizedBox(height: 22),
-                          _HistorySection(
-                            history: data.history,
-                            api: widget.api,
-                            onOpen: _openAlbum,
-                          ),
-                        ],
-                      );
-                    },
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _FavoritesSection(
+                        favorites: data.favorites,
+                        api: widget.api,
+                        autoDownloadIds: data.autoDownloadIds,
+                        onOpen: _openAlbum,
+                        onAutoDownloadChanged: _setAutoDownload,
+                      ),
+                      const SizedBox(height: 22),
+                      _RecentSection(
+                        items: recentItems,
+                        api: widget.api,
+                        onOpen: _openAlbum,
+                      ),
+                    ],
                   ),
                 ),
               );
@@ -314,79 +266,54 @@ class _FavoritesSection extends StatelessWidget {
 
 class _RecentSection extends StatelessWidget {
   const _RecentSection({
-    required this.recent,
+    required this.items,
     required this.api,
     required this.onOpen,
   });
 
-  final List<RecentAlbum> recent;
+  final List<_RecentLibraryItem> items;
   final JmApi api;
   final ValueChanged<String> onOpen;
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = width >= 1200
+        ? 6
+        : width >= 900
+            ? 5
+            : width >= 560
+                ? 3
+                : 2;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _SectionTitle(
             icon: Icons.visibility_outlined,
-            title: '最近浏览',
-            count: recent.length),
+            title: '最近记录',
+            count: items.length),
         const SizedBox(height: 10),
-        if (recent.isEmpty)
-          const _SectionEmpty(text: '打开过详情页的本子会出现在这里。')
+        if (items.isEmpty)
+          const _SectionEmpty(text: '打开详情页或开始阅读后，这里会出现最近记录。')
         else
-          ListView.separated(
+          GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            itemCount: recent.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemCount: items.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: columns,
+              mainAxisSpacing: 10,
+              crossAxisSpacing: 10,
+              childAspectRatio: .64,
+            ),
             itemBuilder: (context, index) {
-              final album = recent[index];
-              return _RecentRow(
-                album: album,
+              final item = items[index];
+              return _RecentCard(
+                item: item,
                 api: api,
-                onTap: () => onOpen(album.albumId),
+                onTap: () => onOpen(item.albumId),
               );
-            },
-          ),
-      ],
-    );
-  }
-}
-
-class _HistorySection extends StatelessWidget {
-  const _HistorySection({
-    required this.history,
-    required this.api,
-    required this.onOpen,
-  });
-
-  final List<ReadingProgress> history;
-  final JmApi api;
-  final ValueChanged<String> onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _SectionTitle(icon: Icons.history, title: '看过', count: history.length),
-        const SizedBox(height: 10),
-        if (history.isEmpty)
-          const _SectionEmpty(text: '阅读过的本子会出现在这里。')
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: history.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
-            itemBuilder: (context, index) {
-              final progress = history[index];
-              return _HistoryRow(
-                  progress: progress,
-                  api: api,
-                  onTap: () => onOpen(progress.albumId));
             },
           ),
       ],
@@ -482,54 +409,66 @@ class _FavoriteTile extends StatelessWidget {
   }
 }
 
-class _HistoryRow extends StatelessWidget {
-  const _HistoryRow(
-      {required this.progress, required this.api, required this.onTap});
+class _RecentCard extends StatelessWidget {
+  const _RecentCard({
+    required this.item,
+    required this.api,
+    required this.onTap,
+  });
 
-  final ReadingProgress progress;
+  final _RecentLibraryItem item;
   final JmApi api;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final title = progress.episodeTitle.isEmpty
-        ? progress.photoTitle
-        : progress.episodeTitle;
     return InkWell(
       onTap: onTap,
       borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
       child: Ink(
-        padding: const EdgeInsets.all(8),
-        decoration:
-            AnimalTheme.cardDecoration(context, radius: AnimalTheme.radiusLg),
-        child: Row(
+        decoration: AnimalTheme.cardDecoration(context),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              width: 54,
-              height: 72,
+            Expanded(
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(AnimalTheme.radiusMd),
-                child: _CoverImage(api: api, coverUrl: progress.coverUrl),
+                borderRadius:
+                    const BorderRadius.vertical(top: Radius.circular(20)),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _CoverImage(api: api, coverUrl: item.coverUrl),
+                    Positioned(
+                      left: 8,
+                      bottom: 8,
+                      child: _TinyPill(text: 'JM${item.albumId}'),
+                    ),
+                    if (item.hasProgress)
+                      Positioned(
+                        right: 8,
+                        bottom: 8,
+                        child: _TinyPill(text: '已读'),
+                      ),
+                  ],
+                ),
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(9, 9, 9, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    progress.albumTitle.isEmpty
-                        ? 'JM${progress.albumId}'
-                        : progress.albumTitle,
+                    item.title.isEmpty ? 'JM${item.albumId}' : item.title,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.labelLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
+                        ?.copyWith(fontWeight: FontWeight.w800, height: 1.15),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    '第 ${progress.episodeIndex} 话 · ${title.isEmpty ? '未命名章节' : title}',
+                    item.subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall
@@ -538,66 +477,6 @@ class _HistoryRow extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RecentRow extends StatelessWidget {
-  const _RecentRow({
-    required this.album,
-    required this.api,
-    required this.onTap,
-  });
-
-  final RecentAlbum album;
-  final JmApi api;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: AnimalTheme.radius(AnimalTheme.radiusLg),
-      child: Ink(
-        padding: const EdgeInsets.all(8),
-        decoration:
-            AnimalTheme.cardDecoration(context, radius: AnimalTheme.radiusLg),
-        child: Row(
-          children: [
-            SizedBox(
-              width: 54,
-              height: 72,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(AnimalTheme.radiusMd),
-                child: _CoverImage(api: api, coverUrl: album.coverUrl),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    album.title.isEmpty ? 'JM${album.albumId}' : album.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.labelLarge
-                        ?.copyWith(fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 6),
-                  _AlbumUpdateText(
-                    updateDate: album.updateDate,
-                    updateWeekday: album.updateWeekday,
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right),
           ],
         ),
       ),
@@ -758,6 +637,24 @@ class _LibraryEmpty extends StatelessWidget {
   }
 }
 
+class _RecentLibraryItem {
+  const _RecentLibraryItem({
+    required this.albumId,
+    required this.title,
+    required this.coverUrl,
+    required this.subtitle,
+    required this.updatedAt,
+    required this.hasProgress,
+  });
+
+  final String albumId;
+  final String title;
+  final String coverUrl;
+  final String subtitle;
+  final DateTime updatedAt;
+  final bool hasProgress;
+}
+
 class _LibraryData {
   const _LibraryData({
     required this.favorites,
@@ -776,4 +673,56 @@ class _LibraryData {
       .map((item) => item.id)
       .where((item) => item.isNotEmpty)
       .toSet();
+
+  List<_RecentLibraryItem> get recentItems {
+    final items = <String, _RecentLibraryItem>{};
+
+    for (final album in recent) {
+      if (album.albumId.isEmpty) continue;
+      items[album.albumId] = _RecentLibraryItem(
+        albumId: album.albumId,
+        title: album.title,
+        coverUrl: album.coverUrl,
+        subtitle: _recentAlbumSubtitle(album),
+        updatedAt: album.viewedAt,
+        hasProgress: false,
+      );
+    }
+
+    for (final progress in history) {
+      if (progress.albumId.isEmpty) continue;
+      final previous = items[progress.albumId];
+      final chapterTitle = progress.episodeTitle.isEmpty
+          ? progress.photoTitle
+          : progress.episodeTitle;
+      final subtitle = chapterTitle.isEmpty
+          ? '读到第 ${progress.episodeIndex} 话'
+          : '读到第 ${progress.episodeIndex} 话 · $chapterTitle';
+      final updatedAt = previous != null &&
+              previous.updatedAt.isAfter(progress.updatedAt)
+          ? previous.updatedAt
+          : progress.updatedAt;
+      items[progress.albumId] = _RecentLibraryItem(
+        albumId: progress.albumId,
+        title: progress.albumTitle.isNotEmpty
+            ? progress.albumTitle
+            : (previous?.title ?? ''),
+        coverUrl: progress.coverUrl.isNotEmpty
+            ? progress.coverUrl
+            : (previous?.coverUrl ?? ''),
+        subtitle: subtitle,
+        updatedAt: updatedAt,
+        hasProgress: true,
+      );
+    }
+
+    return items.values.toList()
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+  }
+
+  static String _recentAlbumSubtitle(RecentAlbum album) {
+    if (album.updateDate.isEmpty) return '最近浏览';
+    if (album.updateWeekday.isEmpty) return album.updateDate;
+    return '${album.updateDate} · ${album.updateWeekday}更新';
+  }
 }

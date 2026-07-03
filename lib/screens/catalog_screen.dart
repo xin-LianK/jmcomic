@@ -860,7 +860,10 @@ class _CompactAlbumTile extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 6, vertical: 3),
                           child: Text('JM${album.id}',
-                              style: theme.textTheme.labelSmall),
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w800,
+                              )),
                         ),
                       ),
                     ),

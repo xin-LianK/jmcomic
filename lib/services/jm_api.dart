@@ -306,6 +306,13 @@ class JmApi {
     return PhotoDetail.fromJson(json);
   }
 
+  Future<PhotoDetail> downloadChapterPreview(
+      String jobId, String chapterId) async {
+    final json =
+        await _getApiJson('/downloads/$jobId/chapters/$chapterId/preview');
+    return PhotoDetail.fromJson(json);
+  }
+
   Future<DownloadJob> downloadAlbum(String id, {String albumTitle = ''}) async {
     final json = await _postApiJson('/downloads/albums', {
       'id': id,

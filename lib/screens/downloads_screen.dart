@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../models/album.dart';
 import '../models/download_job.dart';
 import '../services/jm_api.dart';
 import '../theme/animal_theme.dart';
@@ -382,15 +383,46 @@ class _DownloadJobCardState extends State<_DownloadJobCard> {
   }
 
   void _openPreview(BuildContext context, String title) {
+    final episodes = _previewEpisodes();
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => ReaderScreen.downloadPreview(
           api: widget.api,
           jobId: job.id,
+          initialPhotoId: episodes.isEmpty ? null : episodes.first.id,
           title: title,
+          episodes: episodes,
         ),
       ),
     );
+  }
+
+  List<Episode> _previewEpisodes() {
+    final chapters = job.chapters
+        .where((chapter) =>
+            chapter.completedImages > 0 || chapter.status == 'done')
+        .toList()
+      ..sort((left, right) {
+        final byIndex = left.index.compareTo(right.index);
+        if (byIndex != 0) return byIndex;
+        return left.id.compareTo(right.id);
+      });
+    return chapters
+        .map(
+          (chapter) => Episode(
+            id: chapter.id,
+            index: chapter.index == 0 ? 1 : chapter.index,
+            title: chapter.title.isEmpty
+                ? (job.episodeTitle.isEmpty
+                    ? (job.albumTitle.isEmpty
+                        ? 'JM${chapter.id}'
+                        : job.albumTitle)
+                    : job.episodeTitle)
+                : chapter.title,
+            fileSize: chapter.fileSize,
+          ),
+        )
+        .toList();
   }
 
   @override

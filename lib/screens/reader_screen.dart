@@ -17,19 +17,25 @@ class ReaderScreen extends StatefulWidget {
     this.albumTitle = '',
     this.coverUrl = '',
     this.episodes = const [],
-  }) : loader = _loadOnlinePhoto;
+  })  : downloadJobId = '',
+        loader = _loadOnlinePhoto;
 
   const ReaderScreen.downloadPreview({
     super.key,
     required this.api,
     required String jobId,
     required this.title,
-  })  : photoId = jobId,
+    String? initialPhotoId,
+    this.episodes = const [],
+  })  : photoId =
+            initialPhotoId ?? (episodes.isEmpty ? jobId : episodes.first.id),
+        downloadJobId = jobId,
         albumId = '',
         albumTitle = '',
         coverUrl = '',
-        episodes = const [],
-        loader = _loadDownloadedPreview;
+        loader = episodes.isEmpty
+            ? _loadDownloadedPreview
+            : _loadDownloadedChapterPreview;
 
   final JmApi api;
   final String photoId;
@@ -38,12 +44,19 @@ class ReaderScreen extends StatefulWidget {
   final String albumTitle;
   final String coverUrl;
   final List<Episode> episodes;
-  final Future<PhotoDetail> Function(JmApi api, String id) loader;
+  final String downloadJobId;
+  final Future<PhotoDetail> Function(JmApi api, String id, String downloadJobId)
+      loader;
 
-  static Future<PhotoDetail> _loadOnlinePhoto(JmApi api, String id) =>
+  static Future<PhotoDetail> _loadOnlinePhoto(
+          JmApi api, String id, String downloadJobId) =>
       api.photo(id);
-  static Future<PhotoDetail> _loadDownloadedPreview(JmApi api, String id) =>
+  static Future<PhotoDetail> _loadDownloadedPreview(
+          JmApi api, String id, String downloadJobId) =>
       api.downloadPreview(id);
+  static Future<PhotoDetail> _loadDownloadedChapterPreview(
+          JmApi api, String id, String downloadJobId) =>
+      api.downloadChapterPreview(downloadJobId, id);
 
   @override
   State<ReaderScreen> createState() => _ReaderScreenState();
@@ -61,7 +74,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     super.initState();
     _photoId = widget.photoId;
     _title = widget.title;
-    _future = widget.loader(widget.api, _photoId);
+    _future = widget.loader(widget.api, _photoId, widget.downloadJobId);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
     _saveProgress();
   }
@@ -73,7 +86,9 @@ class _ReaderScreenState extends State<ReaderScreen> {
   }
 
   void _reload() {
-    setState(() => _future = widget.loader(widget.api, _photoId));
+    setState(() {
+      _future = widget.loader(widget.api, _photoId, widget.downloadJobId);
+    });
   }
 
   int get _episodeIndex =>
@@ -106,7 +121,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     setState(() {
       _photoId = episode.id;
       _title = episode.title;
-      _future = widget.loader(widget.api, episode.id);
+      _future = widget.loader(widget.api, episode.id, widget.downloadJobId);
     });
     _setControlsVisible(false);
     _saveProgress();
@@ -381,6 +396,14 @@ class _ReaderControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final buttonStyle = FilledButton.styleFrom(
+      backgroundColor: AnimalTheme.darkSurfaceSoft,
+      foregroundColor: AnimalTheme.darkInk,
+      disabledBackgroundColor:
+          AnimalTheme.darkSurfaceSoft.withValues(alpha: .72),
+      disabledForegroundColor: AnimalTheme.darkMuted,
+    );
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: AnimalTheme.darkSurface.withValues(alpha: .9),
@@ -402,6 +425,7 @@ class _ReaderControls extends StatelessWidget {
             Expanded(
               child: FilledButton.tonalIcon(
                 onPressed: canPrevious ? onPrevious : null,
+                style: buttonStyle,
                 icon: const Icon(Icons.chevron_left),
                 label: const Text('上一章'),
               ),
@@ -410,6 +434,7 @@ class _ReaderControls extends StatelessWidget {
             Expanded(
               child: FilledButton.tonalIcon(
                 onPressed: canCatalog ? onCatalog : null,
+                style: buttonStyle,
                 icon: const Icon(Icons.list_alt_outlined),
                 label: const Text('目录'),
               ),
@@ -418,6 +443,7 @@ class _ReaderControls extends StatelessWidget {
             Expanded(
               child: FilledButton.tonalIcon(
                 onPressed: canNext ? onNext : null,
+                style: buttonStyle,
                 icon: const Icon(Icons.chevron_right),
                 label: const Text('下一章'),
               ),
