@@ -657,6 +657,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
   late final TextEditingController _barkController;
   late Future<Map<String, dynamic>> _future;
   late Future<VisualSettings> _settingsFuture;
+  late Future<JmSchedulerStatus> _schedulerFuture;
   bool _saving = false;
   bool _lockEnabled = false;
   bool _hasLockPassword = false;
@@ -668,6 +669,8 @@ class _SettingsScreenState extends State<_SettingsScreen> {
   int _imageWorkers = 30;
   bool _createPdf = false;
   int _pdfMergeWorkers = 3;
+  bool _downloadsPaused = false;
+  String? _schedulerActionKey;
 
   @override
   void initState() {
@@ -677,6 +680,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
     _barkController = TextEditingController();
     _future = widget.api.health();
     _settingsFuture = _loadVisualSettings();
+    _schedulerFuture = widget.api.schedulerStatus();
     _loadAppLock();
   }
 
@@ -687,6 +691,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
       _apiBaseController.text = widget.api.baseUrl;
       _future = widget.api.health();
       _settingsFuture = _loadVisualSettings();
+      _schedulerFuture = widget.api.schedulerStatus();
     }
   }
 
@@ -707,6 +712,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
     _imageWorkers = settings.imageWorkers;
     _createPdf = settings.createPdf;
     _pdfMergeWorkers = settings.pdfMergeWorkers;
+    _downloadsPaused = settings.downloadsPaused;
     return settings;
   }
 
@@ -726,6 +732,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
         imageWorkers: _imageWorkers,
         createPdf: _createPdf,
         pdfMergeWorkers: _pdfMergeWorkers,
+        downloadsPaused: _downloadsPaused,
       ));
       if (!mounted) return;
       setState(() {
@@ -736,6 +743,7 @@ class _SettingsScreenState extends State<_SettingsScreen> {
         _imageWorkers = settings.imageWorkers;
         _createPdf = settings.createPdf;
         _pdfMergeWorkers = settings.pdfMergeWorkers;
+        _downloadsPaused = settings.downloadsPaused;
         _settingsFuture = Future.value(settings);
         _future = widget.api.health();
       });
@@ -747,6 +755,33 @@ class _SettingsScreenState extends State<_SettingsScreen> {
           .showSnackBar(SnackBar(content: Text('JM 设置保存失败：$error')));
     } finally {
       if (mounted) setState(() => _settingsSaving = false);
+    }
+  }
+
+  Future<void> _refreshScheduler() async {
+    setState(() => _schedulerFuture = widget.api.schedulerStatus());
+    try {
+      await _schedulerFuture;
+    } catch (_) {
+      // FutureBuilder renders the error state.
+    }
+  }
+
+  Future<void> _runSchedulerTask(String taskType) async {
+    if (_schedulerActionKey != null) return;
+    setState(() => _schedulerActionKey = taskType);
+    try {
+      final response = await widget.api.runSchedulerTask(taskType);
+      if (!mounted) return;
+      setState(() => _schedulerFuture = widget.api.schedulerStatus());
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(response.message)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('启动后台任务失败：$error')));
+    } finally {
+      if (mounted) setState(() => _schedulerActionKey = null);
     }
   }
 
@@ -875,7 +910,24 @@ class _SettingsScreenState extends State<_SettingsScreen> {
                       pdfMergeWorkers: _pdfMergeWorkers,
                       onPdfMergeWorkersChanged: (value) =>
                           setState(() => _pdfMergeWorkers = value),
+                      downloadsPaused: _downloadsPaused,
+                      onDownloadsPausedChanged: (value) =>
+                          setState(() => _downloadsPaused = value),
                       onSave: _saveVisualSettings,
+                    );
+                  },
+                ),
+                const SizedBox(height: 14),
+                FutureBuilder<JmSchedulerStatus>(
+                  future: _schedulerFuture,
+                  builder: (context, snapshot) {
+                    return _SchedulerPanel(
+                      loading: snapshot.connectionState != ConnectionState.done,
+                      error: snapshot.error?.toString(),
+                      status: snapshot.data,
+                      actionKey: _schedulerActionKey,
+                      onRefresh: _refreshScheduler,
+                      onRunTask: _runSchedulerTask,
                     );
                   },
                 ),
@@ -1153,6 +1205,8 @@ class _BarkPanel extends StatelessWidget {
     required this.onCreatePdfChanged,
     required this.pdfMergeWorkers,
     required this.onPdfMergeWorkersChanged,
+    required this.downloadsPaused,
+    required this.onDownloadsPausedChanged,
     required this.onSave,
   });
 
@@ -1171,6 +1225,8 @@ class _BarkPanel extends StatelessWidget {
   final ValueChanged<bool> onCreatePdfChanged;
   final int pdfMergeWorkers;
   final ValueChanged<int> onPdfMergeWorkersChanged;
+  final bool downloadsPaused;
+  final ValueChanged<bool> onDownloadsPausedChanged;
   final VoidCallback onSave;
 
   static const _intervals = [15, 30, 60, 180, 360, 720, 1440];
@@ -1308,6 +1364,13 @@ class _BarkPanel extends StatelessWidget {
             title: const Text('下载后自动生成 PDF'),
             subtitle: const Text('NAS 不稳时建议关闭，下载后在队列里手动合并。'),
           ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            value: downloadsPaused,
+            onChanged: saving || loading ? null : onDownloadsPausedChanged,
+            title: const Text('暂停服务器下载队列'),
+            subtitle: const Text('保存后新任务会停在排队中，可在下载页随时恢复。'),
+          ),
           const SizedBox(height: 10),
           FilledButton.icon(
             onPressed: saving || loading ? null : onSave,
@@ -1318,6 +1381,363 @@ class _BarkPanel extends StatelessWidget {
                     child: CircularProgressIndicator(strokeWidth: 2))
                 : const Icon(Icons.save_outlined),
             label: Text(saving ? '保存中' : '保存 JM 设置'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SchedulerPanel extends StatelessWidget {
+  const _SchedulerPanel({
+    required this.loading,
+    required this.error,
+    required this.status,
+    required this.actionKey,
+    required this.onRefresh,
+    required this.onRunTask,
+  });
+
+  final bool loading;
+  final String? error;
+  final JmSchedulerStatus? status;
+  final String? actionKey;
+  final VoidCallback onRefresh;
+  final ValueChanged<String> onRunTask;
+
+  bool _busy(String taskType) => actionKey == taskType;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final data = status;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: AnimalTheme.cardDecoration(context),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sync_outlined,
+                  size: 19, color: theme.colorScheme.secondary),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text('后台同步', style: theme.textTheme.titleSmall),
+              ),
+              IconButton(
+                tooltip: '刷新后台状态',
+                onPressed: loading ? null : onRefresh,
+                icon: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          if (error != null)
+            _InlineState(
+              icon: Icons.cloud_off_outlined,
+              text: error!,
+              color: theme.colorScheme.error,
+            )
+          else if (data == null)
+            const LinearProgressIndicator(minHeight: 5)
+          else ...[
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                _SchedulerMetricCard(
+                  icon: Icons.favorite_outline,
+                  title: '追更检查',
+                  status: data.watch.running ? '线程运行中' : '等待',
+                  detail:
+                      '启用 ${data.watch.enabledCount}/${data.watch.watchCount} · ${data.watch.intervalMinutes} 分钟',
+                  color: theme.colorScheme.tertiary,
+                ),
+                _SchedulerMetricCard(
+                  icon: Icons.dataset_outlined,
+                  title: '元数据同步',
+                  status: data.metadataSync.running
+                      ? '运行中'
+                      : data.metadataSync.enabled
+                          ? '已启用'
+                          : '未启用',
+                  detail:
+                      '候选 ${data.metadataSync.lastCandidateCount} · 成功 ${data.metadataSync.lastSuccessCount} · 失败 ${data.metadataSync.lastFailedCount}',
+                  color: data.metadataSync.lastFailedCount > 0
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.secondary,
+                ),
+                _SchedulerMetricCard(
+                  icon: Icons.travel_explore_outlined,
+                  title: '源站发现',
+                  status: data.latestDiscovery.running
+                      ? '运行中'
+                      : data.latestDiscovery.enabled
+                          ? '已启用'
+                          : '未启用',
+                  detail:
+                      '源 ${data.latestDiscovery.lastCandidateCount} · 成功 ${data.latestDiscovery.lastSuccessCount} · 失败 ${data.latestDiscovery.lastFailedCount}',
+                  color: data.latestDiscovery.lastFailedCount > 0
+                      ? theme.colorScheme.error
+                      : theme.colorScheme.primary,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: actionKey == null
+                      ? () => onRunTask('metadata_sync')
+                      : null,
+                  icon: _busy('metadata_sync')
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.dataset_outlined),
+                  label: const Text('立即同步元数据'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: actionKey == null
+                      ? () => onRunTask('latest_discovery')
+                      : null,
+                  icon: _busy('latest_discovery')
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.travel_explore_outlined),
+                  label: const Text('立即发现源站'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text('最近运行记录', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            if (data.recentRuns.isEmpty)
+              _InlineState(
+                icon: Icons.history_outlined,
+                text: '还没有后台任务记录',
+                color: theme.colorScheme.outline,
+              )
+            else
+              Column(
+                children: [
+                  for (final run in data.recentRuns.take(6))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: _SchedulerRunTile(run: run),
+                    ),
+                ],
+              ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _SchedulerMetricCard extends StatelessWidget {
+  const _SchedulerMetricCard({
+    required this.icon,
+    required this.title,
+    required this.status,
+    required this.detail,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String status;
+  final String detail;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 180, maxWidth: 260),
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: AnimalTheme.cardDecoration(
+          context,
+          color: AnimalTheme.softPaper(context).withValues(alpha: .62),
+          radius: AnimalTheme.radiusMd,
+          elevated: false,
+          borderColor: color.withValues(alpha: .40),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, size: 17, color: color),
+                const SizedBox(width: 7),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.labelLarge,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(status,
+                style: theme.textTheme.titleSmall?.copyWith(color: color)),
+            const SizedBox(height: 3),
+            Text(
+              detail,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall
+                  ?.copyWith(color: theme.colorScheme.outline),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SchedulerRunTile extends StatelessWidget {
+  const _SchedulerRunTile({required this.run});
+
+  final JmTaskRun run;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final failed = run.status == 'failed' || run.failedCount > 0;
+    final color = failed ? theme.colorScheme.error : theme.colorScheme.tertiary;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.paper(context).withValues(alpha: .72),
+        radius: AnimalTheme.radiusMd,
+        elevated: false,
+        borderColor: color.withValues(alpha: .36),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            failed ? Icons.error_outline : Icons.check_circle_outline,
+            size: 18,
+            color: color,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${_taskTypeLabel(run.taskType)} · ${_runStatusLabel(run.status)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.labelLarge,
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${_compactDate(run.startedAt)} · ${run.durationSeconds} 秒 · 候选 ${run.candidateCount} · 成功 ${run.successCount} · 失败 ${run.failedCount}',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.outline),
+                ),
+                if (run.error.isNotEmpty) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    run.error,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.colorScheme.error),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _taskTypeLabel(String value) {
+    return switch (value) {
+      'metadata_sync' => '元数据同步',
+      'latest_discovery' => '源站发现',
+      _ => value,
+    };
+  }
+
+  String _runStatusLabel(String value) {
+    return switch (value) {
+      'succeeded' => '成功',
+      'failed' => '失败',
+      _ => value,
+    };
+  }
+
+  String _compactDate(String value) {
+    final parsed = DateTime.tryParse(value);
+    if (parsed == null) return value.isEmpty ? '-' : value;
+    final local = parsed.toLocal();
+    String two(int number) => number.toString().padLeft(2, '0');
+    return '${local.month}/${local.day} ${two(local.hour)}:${two(local.minute)}';
+  }
+}
+
+class _InlineState extends StatelessWidget {
+  const _InlineState({
+    required this.icon,
+    required this.text,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String text;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(10),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: AnimalTheme.softPaper(context).withValues(alpha: .54),
+        radius: AnimalTheme.radiusMd,
+        elevated: false,
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 18, color: color),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
           ),
         ],
       ),

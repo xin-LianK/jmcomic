@@ -20,17 +20,20 @@ class DownloadsScreen extends StatefulWidget {
 class _DownloadsScreenState extends State<DownloadsScreen> {
   Timer? _timer;
   List<DownloadJob> _jobs = const [];
+  DownloadQueueStatus _queue = DownloadQueueStatus.idle;
   bool _loading = true;
   bool _refreshing = false;
+  String? _actionKey;
   String? _error;
   String _rootPath = '';
+  bool _deleteFilesOnClear = false;
 
   @override
   void initState() {
     super.initState();
     _loadDownloads(showLoading: true);
     _timer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (_jobs.any(_isActiveJob)) {
+      if (_queue.hasWork || _jobs.any(_isActiveJob)) {
         _loadDownloads();
       }
     });
@@ -52,12 +55,12 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
     }
     setState(() => _refreshing = true);
     try {
-      final jobs = await widget.api.downloads();
+      final response = await widget.api.downloads();
       final health = await widget.api.health();
       final rootPath = health['downloadDir']?.toString() ?? '';
       if (!mounted) return;
       setState(() {
-        _jobs = jobs;
+        _applyDownloadsResponse(response);
         _rootPath = rootPath;
         _error = null;
         _loading = false;
@@ -75,6 +78,88 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
 
   void _refresh() {
     _loadDownloads();
+  }
+
+  void _applyDownloadsResponse(DownloadsResponse response) {
+    _jobs = response.jobs;
+    _queue = response.queue;
+  }
+
+  Future<void> _runQueueAction({
+    required String key,
+    required String success,
+    required Future<DownloadsResponse> Function() action,
+  }) async {
+    if (_actionKey != null) return;
+    setState(() => _actionKey = key);
+    try {
+      final response = await action();
+      if (!mounted) return;
+      setState(() {
+        _applyDownloadsResponse(response);
+        _error = null;
+      });
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(success)));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$success失败：$error')));
+    } finally {
+      if (mounted) setState(() => _actionKey = null);
+    }
+  }
+
+  Future<void> _runBatchAction({
+    required String key,
+    required String label,
+    required Future<DownloadBatchResponse> Function() action,
+  }) async {
+    if (_actionKey != null) return;
+    setState(() => _actionKey = key);
+    try {
+      final response = await action();
+      if (!mounted) return;
+      setState(() {
+        _applyDownloadsResponse(response);
+        _error = null;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              '$label：匹配 ${response.matched} 个，已加入 ${response.queued} 个，失败 ${response.failed} 个')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('$label失败：$error')));
+    } finally {
+      if (mounted) setState(() => _actionKey = null);
+    }
+  }
+
+  Future<void> _clearCompletedDownloads() async {
+    if (_actionKey != null) return;
+    setState(() => _actionKey = 'clear');
+    try {
+      final response = await widget.api.clearCompletedDownloads(
+        deleteFiles: _deleteFilesOnClear,
+      );
+      if (!mounted) return;
+      setState(() {
+        _applyDownloadsResponse(response);
+        _error = null;
+      });
+      final extra = response.deleteErrors.isEmpty
+          ? ''
+          : '，删除失败 ${response.deleteErrors.length} 个';
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('已清理 ${response.removed} 个完成任务$extra')));
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('清理完成失败：$error')));
+    } finally {
+      if (mounted) setState(() => _actionKey = null);
+    }
   }
 
   @override
@@ -125,6 +210,42 @@ class _DownloadsScreenState extends State<DownloadsScreen> {
             ),
           ),
         ),
+        if (!_loading && _error == null)
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(gutter, 0, gutter, 10),
+              child: _QueueControlPanel(
+                queue: _queue,
+                actionKey: _actionKey,
+                deleteFilesOnClear: _deleteFilesOnClear,
+                onDeleteFilesChanged: (value) =>
+                    setState(() => _deleteFilesOnClear = value),
+                onTogglePaused: () => _runQueueAction(
+                  key: _queue.paused ? 'resume-queue' : 'pause-queue',
+                  success: _queue.paused ? '队列已恢复' : '队列已暂停',
+                  action: _queue.paused
+                      ? widget.api.resumeDownloadQueue
+                      : widget.api.pauseDownloadQueue,
+                ),
+                onRecover: () => _runQueueAction(
+                  key: 'recover',
+                  success: '旧下载已适配',
+                  action: () => widget.api.recoverDownloads(),
+                ),
+                onRetryFailed: () => _runBatchAction(
+                  key: 'retry-failed',
+                  label: '重试失败',
+                  action: widget.api.retryFailedDownloads,
+                ),
+                onDownloadMissing: () => _runBatchAction(
+                  key: 'download-missing',
+                  label: '补缺失图片',
+                  action: widget.api.downloadMissingImages,
+                ),
+                onClearCompleted: _clearCompletedDownloads,
+              ),
+            ),
+          ),
         if (_loading)
           const SliverFillRemaining(
             hasScrollBody: false,
@@ -198,6 +319,188 @@ class _DownloadGroup {
   final String albumId;
   final String title;
   final List<DownloadJob> jobs;
+}
+
+class _QueueControlPanel extends StatelessWidget {
+  const _QueueControlPanel({
+    required this.queue,
+    required this.actionKey,
+    required this.deleteFilesOnClear,
+    required this.onDeleteFilesChanged,
+    required this.onTogglePaused,
+    required this.onRecover,
+    required this.onRetryFailed,
+    required this.onDownloadMissing,
+    required this.onClearCompleted,
+  });
+
+  final DownloadQueueStatus queue;
+  final String? actionKey;
+  final bool deleteFilesOnClear;
+  final ValueChanged<bool> onDeleteFilesChanged;
+  final VoidCallback onTogglePaused;
+  final VoidCallback onRecover;
+  final VoidCallback onRetryFailed;
+  final VoidCallback onDownloadMissing;
+  final VoidCallback onClearCompleted;
+
+  bool _busy(String key) => actionKey == key;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final paused = queue.paused;
+    final statusColor = paused ? scheme.secondary : scheme.tertiary;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: AnimalTheme.cardDecoration(
+        context,
+        color: paused
+            ? scheme.secondaryContainer
+                .withValues(alpha: AnimalTheme.isDark(context) ? .20 : .46)
+            : scheme.tertiaryContainer
+                .withValues(alpha: AnimalTheme.isDark(context) ? .18 : .42),
+        radius: AnimalTheme.radiusLg,
+        elevated: false,
+        borderColor: statusColor.withValues(alpha: .46),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                paused ? Icons.pause_circle_outline : Icons.play_circle_outline,
+                color: statusColor,
+              ),
+              const SizedBox(width: 9),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      paused ? '队列已暂停' : '队列运行中',
+                      style: theme.textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '运行 ${queue.running} / ${queue.maxWorkers} · 排队 ${queue.queued}'
+                      '${queue.nextJobId.isEmpty ? '' : ' · 下一项 ${queue.nextJobId}'}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: theme.colorScheme.outline),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              _QueueActionButton(
+                busy: _busy(paused ? 'resume-queue' : 'pause-queue'),
+                icon: paused ? Icons.play_arrow_outlined : Icons.pause_outlined,
+                label: paused ? '恢复队列' : '暂停队列',
+                filled: true,
+                onPressed: actionKey == null ? onTogglePaused : null,
+              ),
+              _QueueActionButton(
+                busy: _busy('recover'),
+                icon: Icons.history_outlined,
+                label: '适配旧下载',
+                onPressed: actionKey == null ? onRecover : null,
+              ),
+              _QueueActionButton(
+                busy: _busy('retry-failed'),
+                icon: Icons.replay_outlined,
+                label: '重试失败',
+                onPressed: actionKey == null ? onRetryFailed : null,
+              ),
+              _QueueActionButton(
+                busy: _busy('download-missing'),
+                icon: Icons.image_search_outlined,
+                label: '补缺失图片',
+                onPressed: actionKey == null ? onDownloadMissing : null,
+              ),
+              _QueueActionButton(
+                busy: _busy('clear'),
+                icon: Icons.cleaning_services_outlined,
+                label: '清理完成',
+                danger: true,
+                onPressed: actionKey == null ? onClearCompleted : null,
+              ),
+              FilterChip(
+                selected: deleteFilesOnClear,
+                avatar: Icon(
+                  deleteFilesOnClear
+                      ? Icons.delete_forever_outlined
+                      : Icons.delete_outline,
+                  size: 16,
+                ),
+                label: const Text('同时删除文件'),
+                onSelected:
+                    actionKey == null ? onDeleteFilesChanged : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _QueueActionButton extends StatelessWidget {
+  const _QueueActionButton({
+    required this.busy,
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+    this.filled = false,
+    this.danger = false,
+  });
+
+  final bool busy;
+  final IconData icon;
+  final String label;
+  final VoidCallback? onPressed;
+  final bool filled;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final childIcon = busy
+        ? const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          )
+        : Icon(icon);
+    if (filled) {
+      return FilledButton.icon(
+        onPressed: onPressed,
+        icon: childIcon,
+        label: Text(label),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: onPressed,
+      icon: childIcon,
+      style: danger
+          ? OutlinedButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            )
+          : null,
+      label: Text(label),
+    );
+  }
 }
 
 class _DownloadGroupCard extends StatelessWidget {
@@ -352,6 +655,15 @@ class _DownloadJobCardState extends State<_DownloadJobCard> {
 
   bool get _canMergePdf => job.status == 'done' && !job.pdfMerge.active;
 
+  bool get _canResume {
+    if (_canCancel) return false;
+    if (job.status == 'done' && job.failedImages == 0) return false;
+    return job.status == 'failed' ||
+        job.status == 'cancelled' ||
+        job.failedImages > 0 ||
+        (job.totalImages > 0 && job.completedImages < job.totalImages);
+  }
+
   Future<void> _cancelDownload() async {
     if (_busy || !_canCancel) return;
     setState(() => _busy = true);
@@ -362,6 +674,36 @@ class _DownloadJobCardState extends State<_DownloadJobCard> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('取消失败：$error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _resumeDownload() async {
+    if (_busy || !_canResume) return;
+    setState(() => _busy = true);
+    try {
+      await widget.api.resumeDownload(job.id);
+      widget.onChanged();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('继续下载失败：$error')));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _updatePriority(String action) async {
+    if (_busy || job.status != 'queued') return;
+    setState(() => _busy = true);
+    try {
+      await widget.api.updateDownloadPriority(job.id, action);
+      widget.onChanged();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('调整队列顺序失败：$error')));
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -483,6 +825,10 @@ class _DownloadJobCardState extends State<_DownloadJobCard> {
             runSpacing: 8,
             children: [
               _JobMetric(icon: Icons.image_outlined, label: countText),
+              if (job.failedImages > 0)
+                _JobMetric(
+                    icon: Icons.broken_image_outlined,
+                    label: '失败 ${job.failedImages}'),
               _JobMetric(icon: Icons.speed_outlined, label: _speed()),
               _JobMetric(
                   icon: Icons.storage_outlined,
@@ -510,12 +856,28 @@ class _DownloadJobCardState extends State<_DownloadJobCard> {
               label: _pdfStatusText(),
             ),
           ],
-          if (job.previewImageCount > 0 || _canCancel || job.status == 'done') ...[
+          if (job.previewImageCount > 0 ||
+              _canCancel ||
+              _canResume ||
+              job.status == 'queued' ||
+              job.status == 'done') ...[
             const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
               children: [
+                if (_canResume)
+                  FilledButton.tonalIcon(
+                    onPressed: _busy ? null : _resumeDownload,
+                    icon: _busy
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.play_arrow_outlined),
+                    label: const Text('继续下载'),
+                  ),
                 if (job.previewImageCount > 0)
                   FilledButton.tonalIcon(
                     onPressed: () => _openPreview(context, title),
@@ -535,6 +897,18 @@ class _DownloadJobCardState extends State<_DownloadJobCard> {
                     label: Text(job.pdfMerge.status == 'done'
                         ? '重新合并 PDF'
                         : '合并 PDF'),
+                  ),
+                if (job.status == 'queued')
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : () => _updatePriority('top'),
+                    icon: const Icon(Icons.vertical_align_top_outlined),
+                    label: const Text('置顶'),
+                  ),
+                if (job.status == 'queued')
+                  OutlinedButton.icon(
+                    onPressed: _busy ? null : () => _updatePriority('bottom'),
+                    icon: const Icon(Icons.move_down_outlined),
+                    label: const Text('稍后'),
                   ),
                 if (_canCancel)
                   OutlinedButton.icon(
@@ -734,7 +1108,9 @@ class _ChapterStatusList extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         chapter.totalImages > 0
-                            ? '${chapter.completedImages}/${chapter.totalImages} 张 · ${_formatBytes(chapter.downloadedBytes)}'
+                            ? '${chapter.completedImages}/${chapter.totalImages} 张'
+                                '${chapter.failedImages > 0 ? ' · 失败 ${chapter.failedImages}' : ''}'
+                                ' · ${_formatBytes(chapter.downloadedBytes)}'
                             : '${chapter.completedImages} 张 · ${_formatBytes(chapter.downloadedBytes)}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

@@ -23,6 +23,7 @@ class VisualSettings {
     required this.imageWorkers,
     required this.createPdf,
     required this.pdfMergeWorkers,
+    required this.downloadsPaused,
   });
 
   final List<String> barkUrls;
@@ -32,6 +33,7 @@ class VisualSettings {
   final int imageWorkers;
   final bool createPdf;
   final int pdfMergeWorkers;
+  final bool downloadsPaused;
 
   factory VisualSettings.fromJson(Map<String, dynamic> json) {
     return VisualSettings(
@@ -46,6 +48,7 @@ class VisualSettings {
       imageWorkers: (json['imageWorkers'] as num?)?.toInt() ?? 30,
       createPdf: json['createPdf'] == true,
       pdfMergeWorkers: (json['pdfMergeWorkers'] as num?)?.toInt() ?? 3,
+      downloadsPaused: json['downloadsPaused'] == true,
     );
   }
 
@@ -57,6 +60,7 @@ class VisualSettings {
         'imageWorkers': imageWorkers,
         'createPdf': createPdf,
         'pdfMergeWorkers': pdfMergeWorkers,
+        'downloadsPaused': downloadsPaused,
       };
 }
 
@@ -92,6 +96,215 @@ class WatchedAlbum {
       updateWeekday: json['updateWeekday']?.toString() ?? '',
     );
   }
+}
+
+class JmSchedulerRunStatus {
+  const JmSchedulerRunStatus({
+    required this.enabled,
+    required this.running,
+    required this.intervalMinutes,
+    required this.nextRunAt,
+    required this.lastStartedAt,
+    required this.lastFinishedAt,
+    required this.lastDurationSeconds,
+    required this.lastCandidateCount,
+    required this.lastSuccessCount,
+    required this.lastFailedCount,
+    required this.lastAlbumIds,
+    required this.lastFailedIds,
+    required this.lastError,
+    this.batchSize,
+    this.maxAgeMinutes,
+    this.pages,
+    this.category,
+    this.orderBy,
+    this.timeRange,
+  });
+
+  final bool enabled;
+  final bool running;
+  final int intervalMinutes;
+  final String nextRunAt;
+  final String lastStartedAt;
+  final String lastFinishedAt;
+  final int lastDurationSeconds;
+  final int lastCandidateCount;
+  final int lastSuccessCount;
+  final int lastFailedCount;
+  final List<String> lastAlbumIds;
+  final List<String> lastFailedIds;
+  final String lastError;
+  final int? batchSize;
+  final int? maxAgeMinutes;
+  final int? pages;
+  final String? category;
+  final String? orderBy;
+  final String? timeRange;
+
+  factory JmSchedulerRunStatus.fromJson(Map<String, dynamic>? json) {
+    final data = json ?? const <String, dynamic>{};
+    return JmSchedulerRunStatus(
+      enabled: data['enabled'] == true,
+      running: data['running'] == true,
+      intervalMinutes: (data['intervalMinutes'] as num?)?.toInt() ?? 0,
+      nextRunAt: data['nextRunAt']?.toString() ?? '',
+      lastStartedAt: data['lastStartedAt']?.toString() ?? '',
+      lastFinishedAt: data['lastFinishedAt']?.toString() ?? '',
+      lastDurationSeconds:
+          (data['lastDurationSeconds'] as num?)?.toInt() ?? 0,
+      lastCandidateCount: (data['lastCandidateCount'] as num?)?.toInt() ?? 0,
+      lastSuccessCount: (data['lastSuccessCount'] as num?)?.toInt() ?? 0,
+      lastFailedCount: (data['lastFailedCount'] as num?)?.toInt() ?? 0,
+      lastAlbumIds: _stringList(data['lastAlbumIds']),
+      lastFailedIds: _stringList(data['lastFailedIds']),
+      lastError: data['lastError']?.toString() ?? '',
+      batchSize: (data['batchSize'] as num?)?.toInt(),
+      maxAgeMinutes: (data['maxAgeMinutes'] as num?)?.toInt(),
+      pages: (data['pages'] as num?)?.toInt(),
+      category: data['category']?.toString(),
+      orderBy: data['orderBy']?.toString(),
+      timeRange: data['timeRange']?.toString(),
+    );
+  }
+}
+
+class JmTaskRun {
+  const JmTaskRun({
+    required this.id,
+    required this.taskType,
+    required this.status,
+    required this.startedAt,
+    required this.finishedAt,
+    required this.durationSeconds,
+    required this.candidateCount,
+    required this.successCount,
+    required this.failedCount,
+    required this.albumIds,
+    required this.failedIds,
+    required this.error,
+  });
+
+  final int id;
+  final String taskType;
+  final String status;
+  final String startedAt;
+  final String finishedAt;
+  final int durationSeconds;
+  final int candidateCount;
+  final int successCount;
+  final int failedCount;
+  final List<String> albumIds;
+  final List<String> failedIds;
+  final String error;
+
+  factory JmTaskRun.fromJson(Map<String, dynamic> json) {
+    return JmTaskRun(
+      id: (json['id'] as num?)?.toInt() ?? 0,
+      taskType: json['taskType']?.toString() ?? '',
+      status: json['status']?.toString() ?? '',
+      startedAt: json['startedAt']?.toString() ?? '',
+      finishedAt: json['finishedAt']?.toString() ?? '',
+      durationSeconds: (json['durationSeconds'] as num?)?.toInt() ?? 0,
+      candidateCount: (json['candidateCount'] as num?)?.toInt() ?? 0,
+      successCount: (json['successCount'] as num?)?.toInt() ?? 0,
+      failedCount: (json['failedCount'] as num?)?.toInt() ?? 0,
+      albumIds: _stringList(json['albumIds']),
+      failedIds: _stringList(json['failedIds']),
+      error: json['error']?.toString() ?? '',
+    );
+  }
+}
+
+class JmWatchRuntimeStatus {
+  const JmWatchRuntimeStatus({
+    required this.enabled,
+    required this.running,
+    required this.intervalMinutes,
+    required this.watchCount,
+    required this.enabledCount,
+    required this.lastCheckedAt,
+    required this.nextCheckAt,
+  });
+
+  final bool enabled;
+  final bool running;
+  final int intervalMinutes;
+  final int watchCount;
+  final int enabledCount;
+  final int lastCheckedAt;
+  final int nextCheckAt;
+
+  factory JmWatchRuntimeStatus.fromJson(Map<String, dynamic>? json) {
+    final data = json ?? const <String, dynamic>{};
+    return JmWatchRuntimeStatus(
+      enabled: data['enabled'] == true,
+      running: data['running'] == true,
+      intervalMinutes: (data['intervalMinutes'] as num?)?.toInt() ?? 0,
+      watchCount: (data['watchCount'] as num?)?.toInt() ?? 0,
+      enabledCount: (data['enabledCount'] as num?)?.toInt() ?? 0,
+      lastCheckedAt: (data['lastCheckedAt'] as num?)?.toInt() ?? 0,
+      nextCheckAt: (data['nextCheckAt'] as num?)?.toInt() ?? 0,
+    );
+  }
+}
+
+class JmSchedulerStatus {
+  const JmSchedulerStatus({
+    required this.metadataSync,
+    required this.latestDiscovery,
+    required this.watch,
+    required this.recentRuns,
+  });
+
+  final JmSchedulerRunStatus metadataSync;
+  final JmSchedulerRunStatus latestDiscovery;
+  final JmWatchRuntimeStatus watch;
+  final List<JmTaskRun> recentRuns;
+
+  factory JmSchedulerStatus.fromJson(Map<String, dynamic> json) {
+    return JmSchedulerStatus(
+      metadataSync: JmSchedulerRunStatus.fromJson(
+          json['metadataSync'] is Map
+              ? Map<String, dynamic>.from(json['metadataSync'] as Map)
+              : null),
+      latestDiscovery: JmSchedulerRunStatus.fromJson(
+          json['latestDiscovery'] is Map
+              ? Map<String, dynamic>.from(json['latestDiscovery'] as Map)
+              : null),
+      watch: JmWatchRuntimeStatus.fromJson(json['watch'] is Map
+          ? Map<String, dynamic>.from(json['watch'] as Map)
+          : null),
+      recentRuns: (json['recentRuns'] as List? ?? const [])
+          .map((item) => JmTaskRun.fromJson(
+              Map<String, dynamic>.from(item as Map)))
+          .toList(),
+    );
+  }
+}
+
+class JmSchedulerRunTriggerResponse {
+  const JmSchedulerRunTriggerResponse({
+    required this.taskType,
+    required this.started,
+    required this.message,
+  });
+
+  final String taskType;
+  final bool started;
+  final String message;
+
+  factory JmSchedulerRunTriggerResponse.fromJson(Map<String, dynamic> json) {
+    return JmSchedulerRunTriggerResponse(
+      taskType: json['taskType']?.toString() ?? '',
+      started: json['started'] == true,
+      message: json['message']?.toString() ?? '',
+    );
+  }
+}
+
+List<String> _stringList(Object? value) {
+  if (value is! List) return const [];
+  return value.map((item) => item.toString()).toList();
 }
 
 class JmApi {
@@ -339,17 +552,66 @@ class JmApi {
     return DownloadJob.fromJson(json);
   }
 
-  Future<List<DownloadJob>> downloads() async {
+  Future<DownloadsResponse> downloads() async {
     final json = await _getApiJson('/downloads');
-    return (json['jobs'] as List? ?? const [])
-        .map((item) =>
-            DownloadJob.fromJson(Map<String, dynamic>.from(item as Map)))
-        .toList();
+    return DownloadsResponse.fromJson(json);
+  }
+
+  Future<DownloadsResponse> recoverDownloads({bool sourceLookup = true}) async {
+    final json = await _withApiFallback((prefix) => _postJson(
+          _uri('$prefix/downloads/recover', {
+            'source_lookup': sourceLookup ? 'true' : 'false',
+          }),
+          {},
+        ));
+    return DownloadsResponse.fromJson(json);
+  }
+
+  Future<DownloadBatchResponse> retryFailedDownloads() async {
+    final json = await _postApiJson('/downloads/batch/retry-failed', {});
+    return DownloadBatchResponse.fromJson(json);
+  }
+
+  Future<DownloadBatchResponse> downloadMissingImages() async {
+    final json = await _postApiJson('/downloads/batch/download-missing', {});
+    return DownloadBatchResponse.fromJson(json);
+  }
+
+  Future<ClearCompletedDownloadsResponse> clearCompletedDownloads({
+    bool deleteFiles = false,
+  }) async {
+    final json = await _postApiJson('/downloads/batch/clear-completed', {
+      'deleteFiles': deleteFiles,
+    });
+    return ClearCompletedDownloadsResponse.fromJson(json);
+  }
+
+  Future<DownloadsResponse> pauseDownloadQueue() async {
+    final json = await _postApiJson('/downloads/queue/pause', {});
+    return DownloadsResponse.fromJson(json);
+  }
+
+  Future<DownloadsResponse> resumeDownloadQueue() async {
+    final json = await _postApiJson('/downloads/queue/resume', {});
+    return DownloadsResponse.fromJson(json);
   }
 
   Future<DownloadJob> cancelDownload(String jobId) async {
     final json = await _postApiJson('/downloads/$jobId/cancel', {});
     return DownloadJob.fromJson(json);
+  }
+
+  Future<DownloadJob> resumeDownload(String jobId) async {
+    final json = await _postApiJson('/downloads/$jobId/resume', {});
+    return DownloadJob.fromJson(json);
+  }
+
+  Future<DownloadsResponse> updateDownloadPriority(
+      String jobId, String action) async {
+    final json = await _postApiJson('/downloads/$jobId/priority', {
+      'action': action,
+    });
+    return DownloadsResponse.fromJson(json);
   }
 
   Future<DownloadJob> mergeDownloadPdf(String jobId) async {
@@ -365,6 +627,17 @@ class JmApi {
   Future<VisualSettings> saveSettings(VisualSettings settings) async {
     final json = await _putApiJson('/settings', settings.toJson());
     return VisualSettings.fromJson(json);
+  }
+
+  Future<JmSchedulerStatus> schedulerStatus() async {
+    final json = await _getApiJson('/scheduler/status');
+    return JmSchedulerStatus.fromJson(json);
+  }
+
+  Future<JmSchedulerRunTriggerResponse> runSchedulerTask(
+      String taskType) async {
+    final json = await _postApiJson('/scheduler/run/$taskType', {});
+    return JmSchedulerRunTriggerResponse.fromJson(json);
   }
 
   Future<List<WatchedAlbum>> watchlist() async {
