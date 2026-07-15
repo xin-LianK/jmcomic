@@ -79,6 +79,8 @@ class DownloadJob {
     required this.previewUrl,
     required this.chapters,
     required this.pdfMerge,
+    this.deduped = false,
+    this.dedupeReason = '',
     this.priority = 0,
     this.createdAt,
     this.updatedAt,
@@ -107,6 +109,8 @@ class DownloadJob {
   final String previewUrl;
   final List<DownloadChapter> chapters;
   final PdfMergeState pdfMerge;
+  final bool deduped;
+  final String dedupeReason;
   final int priority;
   final DateTime? createdAt;
   final DateTime? updatedAt;
@@ -148,6 +152,8 @@ class DownloadJob {
           ? PdfMergeState.fromJson(
               Map<String, dynamic>.from(json['pdfMerge'] as Map))
           : PdfMergeState.idle,
+      deduped: json['deduped'] == true,
+      dedupeReason: json['dedupeReason']?.toString() ?? '',
       priority: (json['priority'] as num?)?.toInt() ?? 0,
       createdAt: _dateTimeFromJson(json['createdAt'] ?? json['created_at']),
       updatedAt: _dateTimeFromJson(json['updatedAt'] ?? json['updated_at']),
@@ -178,6 +184,8 @@ class DownloadJob {
         'previewUrl': previewUrl,
         'chapters': chapters.map((item) => item.toJson()).toList(),
         'pdfMerge': pdfMerge.toJson(),
+        'deduped': deduped,
+        'dedupeReason': dedupeReason,
         'priority': priority,
         'createdAt': createdAt?.toIso8601String(),
         'updatedAt': updatedAt?.toIso8601String(),
@@ -207,6 +215,8 @@ class DownloadJob {
     String? previewUrl,
     List<DownloadChapter>? chapters,
     PdfMergeState? pdfMerge,
+    bool? deduped,
+    String? dedupeReason,
     int? priority,
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -235,6 +245,8 @@ class DownloadJob {
       previewUrl: previewUrl ?? this.previewUrl,
       chapters: chapters ?? this.chapters,
       pdfMerge: pdfMerge ?? this.pdfMerge,
+      deduped: deduped ?? this.deduped,
+      dedupeReason: dedupeReason ?? this.dedupeReason,
       priority: priority ?? this.priority,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
