@@ -6,6 +6,7 @@ import 'screens/catalog_screen.dart';
 import 'screens/downloads_screen.dart';
 import 'screens/library_screen.dart';
 import 'services/jm_api.dart';
+import 'services/jm_presentation.dart';
 import 'theme/animal_theme.dart';
 import 'widgets/app_logo.dart';
 
@@ -1648,7 +1649,7 @@ class _SchedulerRunTile extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '${_taskTypeLabel(run.taskType)} · ${_runStatusLabel(run.status)}',
+                  '${_taskTypeLabel(run.taskType)} · ${jmTaskRunStatusLabel(run.status)}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: theme.textTheme.labelLarge,
@@ -1683,14 +1684,6 @@ class _SchedulerRunTile extends StatelessWidget {
     return switch (value) {
       'metadata_sync' => '元数据同步',
       'latest_discovery' => '源站发现',
-      _ => value,
-    };
-  }
-
-  String _runStatusLabel(String value) {
-    return switch (value) {
-      'succeeded' => '成功',
-      'failed' => '失败',
       _ => value,
     };
   }

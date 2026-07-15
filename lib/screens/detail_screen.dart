@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../models/album.dart';
 import '../services/jm_api.dart';
+import '../services/jm_presentation.dart';
 import '../services/library_store.dart';
 import '../theme/animal_theme.dart';
 import '../widgets/action_chip_button.dart';
@@ -78,9 +79,7 @@ class _DetailScreenState extends State<DetailScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  '已加入服务器下载队列：${job.albumTitle.isEmpty ? 'JM${job.jmId}' : job.albumTitle}')),
+          SnackBar(content: Text(downloadEnqueueMessage(job))),
         );
       }
     } catch (error) {
@@ -106,9 +105,7 @@ class _DetailScreenState extends State<DetailScreen> {
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-              content: Text(
-                  '章节已加入服务器下载队列：${job.episodeTitle.isEmpty ? 'JM${job.jmId}' : job.episodeTitle}')),
+          SnackBar(content: Text(downloadEnqueueMessage(job))),
         );
       }
     } catch (error) {
